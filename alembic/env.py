@@ -1,5 +1,4 @@
 from logging.config import fileConfig
-from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy import pool
@@ -7,10 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from serienabend_shef.db import Base
-
-data_dir = Path.home() / ".local" / "share" / "serienabend_shef"
-sqlite_db_file = data_dir / "data.db"
-db_connection_url = f"sqlite+pysqlite:///{str(sqlite_db_file)}"
+from serienabend_shef import db_connection_url
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

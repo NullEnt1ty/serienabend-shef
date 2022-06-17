@@ -19,6 +19,7 @@ add_shef_parser.add_argument("--points", type=int)
 
 get_shef_parser = subparsers.add_parser("get-shef")
 get_shef_parser.set_defaults(func=cmd_get_shef)
+get_shef_parser.add_argument("name")
 
 args = parser.parse_args()
 args.func(args)

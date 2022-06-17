@@ -10,4 +10,4 @@ class Shef(Base):
     points = Column(Integer, server_default=text("0"))
 
     def __repr__(self) -> str:
-        return f"Shef(id={self.id!r}, name={self.name!r})"
+        return f"Shef(id={self.id!r}, name={self.name!r}, points={self.points!r})"

@@ -1,2 +1,2 @@
-from .shef import *
+from .chef import *
 from .exceptions import *

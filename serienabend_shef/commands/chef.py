@@ -6,6 +6,8 @@ from ..helpers import (
     add_chef,
     get_chef,
     get_chefs,
+    delete_chef,
+    ChefNotFoundError,
 )
 
 
@@ -13,7 +15,7 @@ def cmd_get_chef(args: argparse.Namespace):
     chef = get_chef(args.name)
 
     if chef is None:
-        raise Exception("Chef not found")
+        raise ChefNotFoundError(args.name)
 
     chef_dict = row2dict(chef)
 
@@ -34,15 +36,16 @@ def cmd_add_chef(args: argparse.Namespace):
     return chef_dict
 
 
+def cmd_delete_chef(args: argparse.Namespace):
+    delete_chef(args.name)
+
+    return f"Deleted chef '{args.name}'"
+
+
 def add_chef_parser(subparsers):
     chef_parser = subparsers.add_parser("chef")
     chef_parser.set_defaults(func=lambda args: chef_parser.print_help())
     chef_subparsers = chef_parser.add_subparsers()
-
-    add_chef_parser = chef_subparsers.add_parser("add")
-    add_chef_parser.set_defaults(func=cmd_add_chef)
-    add_chef_parser.add_argument("name")
-    add_chef_parser.add_argument("--points", type=int)
 
     get_chef_parser = chef_subparsers.add_parser("get")
     get_chef_parser.set_defaults(func=cmd_get_chef)
@@ -50,3 +53,12 @@ def add_chef_parser(subparsers):
 
     list_chef_parser = chef_subparsers.add_parser("list")
     list_chef_parser.set_defaults(func=cmd_list_chefs)
+
+    add_chef_parser = chef_subparsers.add_parser("add")
+    add_chef_parser.set_defaults(func=cmd_add_chef)
+    add_chef_parser.add_argument("name")
+    add_chef_parser.add_argument("--points", type=int)
+
+    delete_chef_parser = chef_subparsers.add_parser("delete")
+    delete_chef_parser.set_defaults(func=cmd_delete_chef)
+    delete_chef_parser.add_argument("name")

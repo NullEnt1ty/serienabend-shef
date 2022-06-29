@@ -1,7 +1,7 @@
 from typing import Optional
-from sqlalchemy import exc, select
+from sqlalchemy import exc, select, delete
 
-from .exceptions import ChefAlreadyExistsError
+from .exceptions import ChefAlreadyExistsError, ChefNotFoundError
 from ..db import Session, Chef
 
 
@@ -38,3 +38,13 @@ def add_chef(name: str, starting_points: Optional[int]):
         session.refresh(chef)
 
     return chef
+
+
+def delete_chef(name: str):
+    with Session() as session:
+        statement = delete(Chef).where(Chef.name == name)
+        result = session.execute(statement)
+        session.commit()
+
+        if result.rowcount == 0:
+            raise ChefNotFoundError(name)

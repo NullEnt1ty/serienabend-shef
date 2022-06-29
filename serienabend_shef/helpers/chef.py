@@ -1,21 +1,28 @@
 from typing import Optional
 from sqlalchemy import exc, select
-from sqlalchemy.orm import Session
 
 from .exceptions import ChefAlreadyExistsError
-from ..db import engine, Chef
+from ..db import Session, Chef
+
+
+def get_chefs():
+    with Session() as session:
+        statement = select(Chef)
+        chefs: list[Chef] = session.execute(statement).scalars().all()
+
+        return chefs
 
 
 def get_chef(name: str):
-    with Session(engine) as session:
+    with Session() as session:
         statement = select(Chef).where(Chef.name == name)
-        chef: Optional[Chef] = session.scalar(statement)
+        chef: Optional[Chef] = session.execute(statement).scalar_one_or_none()
 
         return chef
 
 
 def add_chef(name: str, starting_points: Optional[int]):
-    with Session(engine) as session:
+    with Session() as session:
         chef = Chef(name=name, points=starting_points)
 
         session.add(chef)

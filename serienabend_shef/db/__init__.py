@@ -1,2 +1,2 @@
 from .models import *
-from .db import engine
+from .db import engine, Session

@@ -9,5 +9,5 @@ class Chef(Base):
     name = Column(String(255), nullable=False, unique=True)
     points = Column(Integer, server_default=text("0"))
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f"Chef(id={self.id!r}, name={self.name!r}, points={self.points!r})"

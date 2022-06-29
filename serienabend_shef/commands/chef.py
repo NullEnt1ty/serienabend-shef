@@ -5,6 +5,7 @@ from ..helpers import (
     rows2dicts,
     add_chef,
     get_chef,
+    get_next_chef,
     get_chefs,
     delete_chef,
     ChefNotFoundError,
@@ -16,6 +17,17 @@ def cmd_get_chef(args: argparse.Namespace):
 
     if chef is None:
         raise ChefNotFoundError(args.name)
+
+    chef_dict = row2dict(chef)
+
+    return chef_dict
+
+
+def cmd_get_next_chef(args: argparse.Namespace):
+    chef = get_next_chef()
+
+    if chef is None:
+        raise Exception("You need to add at least one chef first")
 
     chef_dict = row2dict(chef)
 
@@ -50,6 +62,9 @@ def add_chef_parser(subparsers):
     get_chef_parser = chef_subparsers.add_parser("get")
     get_chef_parser.set_defaults(func=cmd_get_chef)
     get_chef_parser.add_argument("name")
+
+    get_next_chef_parser = chef_subparsers.add_parser("get-next")
+    get_next_chef_parser.set_defaults(func=cmd_get_next_chef)
 
     list_chef_parser = chef_subparsers.add_parser("list")
     list_chef_parser.set_defaults(func=cmd_list_chefs)

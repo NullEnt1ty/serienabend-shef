@@ -21,6 +21,14 @@ def get_chef(name: str):
         return chef
 
 
+def get_next_chef():
+    with Session() as session:
+        statement = select(Chef).order_by(Chef.points.asc()).limit(1)
+        chef: Optional[Chef] = session.execute(statement).scalar_one_or_none()
+
+        return chef
+
+
 def add_chef(name: str, starting_points: Optional[int]):
     with Session() as session:
         chef = Chef(name=name, points=starting_points)

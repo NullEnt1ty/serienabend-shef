@@ -32,4 +32,9 @@ def add_chef(name: str, starting_points: Optional[int]):
         except exc.IntegrityError:
             raise ChefAlreadyExistsError(name)
 
+        # Load attributes of this chef instance eagerly in order to access them
+        # later after this session was closed (which happens once we leave this
+        # with-block).
+        session.refresh(chef)
+
     return chef

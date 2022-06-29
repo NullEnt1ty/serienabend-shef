@@ -1,6 +1,23 @@
+import sys
+
 from .commands import parser
-from .helpers import set_logging_format
+from .helpers import log_pretty, log_json
 
 args = parser.parse_args()
-set_logging_format(args.format)
-args.func(args)
+error = None
+
+try:
+    output = args.func(args)
+except Exception as err:
+    error = err
+    output = {"error": str(err)}
+
+if args.format == "pretty":
+    log_pretty(output)
+elif args.format == "json":
+    log_json(output)
+else:
+    print(f"Unknown logging format configured: {args.format}")
+
+if error is not None:
+    sys.exit(1)

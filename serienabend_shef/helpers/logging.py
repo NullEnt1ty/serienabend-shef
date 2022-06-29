@@ -1,21 +1,5 @@
 import json
 
-format = "pretty"
-
-
-def set_logging_format(new_format: str):
-    global format
-    format = new_format
-
-
-def log(value: any):
-    if format == "pretty":
-        log_pretty(value)
-    elif format == "json":
-        log_json(value)
-    else:
-        print(f"Unknown logging format configured: {format}")
-
 
 def log_pretty(value: any):
     if isinstance(value, list):

@@ -1,8 +1,7 @@
 import argparse
 
 from ..helpers import (
-    ChefAlreadyExistsError,
-    log,
+    row2dict,
     rows2dicts,
     add_chef,
     get_chef,
@@ -14,23 +13,25 @@ def cmd_get_chef(args: argparse.Namespace):
     chef = get_chef(args.name)
 
     if chef is None:
-        log("Chef not found")
-        return
+        raise Exception("Chef not found")
 
-    log(chef)
+    chef_dict = row2dict(chef)
+
+    return chef_dict
 
 
 def cmd_list_chefs(args: argparse.Namespace):
     chefs = get_chefs()
-    log(rows2dicts(chefs))
+    chefs_dict = rows2dicts(chefs)
+
+    return chefs_dict
 
 
 def cmd_add_chef(args: argparse.Namespace):
-    try:
-        add_chef(args.name, args.points)
-        log(f"Added '{args.name}' to chefs")
-    except ChefAlreadyExistsError:
-        log("Chef already exists")
+    chef = add_chef(args.name, args.points)
+    chef_dict = row2dict(chef)
+
+    return chef_dict
 
 
 def add_chef_parser(subparsers):

@@ -12,5 +12,5 @@ setup(
     author="Dominique Mattern",
     author_email="dominique@mattern.dev",
     # url='',
-    packages=find_packages(exclude=("tests", "docs")),
+    packages=find_packages(exclude=("alembic", "docs")),
 )

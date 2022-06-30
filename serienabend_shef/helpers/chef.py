@@ -29,9 +29,13 @@ def get_next_chef():
         return chef
 
 
-def add_chef(name: str, starting_points: Optional[int]):
+def add_chef(
+    name: str, starting_points: Optional[int], points_multiplier: Optional[int]
+):
     with Session() as session:
-        chef = Chef(name=name, points=starting_points)
+        chef = Chef(
+            name=name, points=starting_points, points_multiplier=points_multiplier
+        )
 
         session.add(chef)
 

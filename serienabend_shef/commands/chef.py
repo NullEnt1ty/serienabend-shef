@@ -43,7 +43,7 @@ def cmd_list_chefs(args: argparse.Namespace):
 
 
 def cmd_add_chef(args: argparse.Namespace):
-    chef = add_chef(args.name, args.points)
+    chef = add_chef(args.name, args.points, args.points_multiplier)
     chef_dict = row2dict(chef)
 
     return chef_dict
@@ -80,6 +80,7 @@ def add_chef_parser(subparsers):
     add_chef_parser.set_defaults(func=cmd_add_chef)
     add_chef_parser.add_argument("name")
     add_chef_parser.add_argument("--points", type=int)
+    add_chef_parser.add_argument("--points-multiplier", type=int)
 
     add_point_parser = chef_subparsers.add_parser("add-point")
     add_point_parser.set_defaults(func=cmd_add_point)

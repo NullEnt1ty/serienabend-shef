@@ -67,7 +67,15 @@ def add_point(name: str):
         statement = select(Chef).where(Chef.name == name)
         chef: Chef = session.execute(statement).scalar_one()
 
+        points_before = chef.points
         points_to_add = 1 * chef.points_multiplier
         chef.points = chef.points + points_to_add
 
         session.commit()
+
+        return {
+            "added_points": points_to_add,
+            "points_before": points_before,
+            "points_after": chef.points,
+            "points_multiplier": chef.points_multiplier,
+        }

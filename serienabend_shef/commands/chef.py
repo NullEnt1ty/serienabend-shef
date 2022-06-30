@@ -56,9 +56,9 @@ def cmd_delete_chef(args: argparse.Namespace):
 
 
 def cmd_add_point(args: argparse.Namespace):
-    add_point(args.name)
+    result = add_point(args.name)
 
-    return f"Added point for '{args.name}'"
+    return result
 
 
 def add_chef_parser(subparsers):

@@ -9,7 +9,11 @@
       "type": "python",
       "request": "launch",
       "module": "serienabend_shef",
-      "justMyCode": true
+      "justMyCode": true,
+      "args": [
+        "chef",
+        "list"
+      ]
     }
   ]
 }

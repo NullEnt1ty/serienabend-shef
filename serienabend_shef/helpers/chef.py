@@ -65,7 +65,10 @@ def delete_chef(name: str):
 def add_point(name: str):
     with Session() as session:
         statement = select(Chef).where(Chef.name == name)
-        chef: Chef = session.execute(statement).scalar_one()
+        chef: Optional[Chef] = session.execute(statement).scalar_one_or_none()
+
+        if chef is None:
+            raise ChefNotFoundError(name)
 
         points_before = chef.points
         points_to_add = 1 * chef.points_multiplier

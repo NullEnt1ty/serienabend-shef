@@ -8,6 +8,7 @@ from ..helpers import (
     get_next_chef,
     get_chefs,
     delete_chef,
+    add_point,
     ChefNotFoundError,
 )
 
@@ -54,6 +55,12 @@ def cmd_delete_chef(args: argparse.Namespace):
     return f"Deleted chef '{args.name}'"
 
 
+def cmd_add_point(args: argparse.Namespace):
+    add_point(args.name)
+
+    return f"Added point for '{args.name}'"
+
+
 def add_chef_parser(subparsers):
     chef_parser = subparsers.add_parser("chef")
     chef_parser.set_defaults(func=lambda args: chef_parser.print_help())
@@ -73,6 +80,10 @@ def add_chef_parser(subparsers):
     add_chef_parser.set_defaults(func=cmd_add_chef)
     add_chef_parser.add_argument("name")
     add_chef_parser.add_argument("--points", type=int)
+
+    add_point_parser = chef_subparsers.add_parser("add-point")
+    add_point_parser.set_defaults(func=cmd_add_point)
+    add_point_parser.add_argument("name")
 
     delete_chef_parser = chef_subparsers.add_parser("delete")
     delete_chef_parser.set_defaults(func=cmd_delete_chef)

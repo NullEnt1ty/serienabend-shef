@@ -56,3 +56,14 @@ def delete_chef(name: str):
 
         if result.rowcount == 0:
             raise ChefNotFoundError(name)
+
+
+def add_point(name: str):
+    with Session() as session:
+        statement = select(Chef).where(Chef.name == name)
+        chef: Chef = session.execute(statement).scalar_one()
+
+        points_to_add = 1 * chef.points_multiplier
+        chef.points = chef.points + points_to_add
+
+        session.commit()

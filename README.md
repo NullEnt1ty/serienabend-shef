@@ -46,3 +46,11 @@ python -m serienabend_shef
   - Datenbank-Migrationen
 - docs
   - Dokumentation
+
+## Projekt bauen
+
+Das Projekt kann mit folgendem Befehl gebaut werden:
+
+```shell
+python -m build
+```

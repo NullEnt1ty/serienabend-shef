@@ -1,5 +1,9 @@
 # Serienabend Shef
 
+_Hey, random internet person! If you stumbled accross this project asking yourself wth this is: This is a project I
+created for me and my friends to find out who's gonna be the next chef on our weekly get together. The rest of this
+documentation is in german but feel free to steal as much code as you'd like! The project is licensed under MIT._
+
 Legt fest, wer der nächste Koch am Serienabend ist.
 
 ![banner](docs/resources/banner.jpg)
@@ -21,14 +25,6 @@ Legt fest, wer der nächste Koch am Serienabend ist.
     pipenv shell
     ```
 
-1. Datenbank-Migrationen ausführen:
-
-    ```shell
-    alembic upgrade head
-    ```
-
-    Die Datenbank wird unter `<Heimverzeichnis>/.local/share/serienabend_shef` gespeichert.
-
 ### Verwendung
 
 Bei der Anwendung handelt es sich um eine Kommandozeilenschnittstelle. Wird die Anwendung ohne weitere Parameter
@@ -37,6 +33,9 @@ gestartet, gibt sie ein Hilfe-Menü aus.
 ```shell
 python -m serienabend_shef
 ```
+
+Die Anwendung verwendet eine SQLite-Datenbank, die unter `<Heimverzeichnis>/.local/share/serienabend_shef` gespeichert
+wird.
 
 ## Projektstruktur
 

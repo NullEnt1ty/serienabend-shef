@@ -1,4 +1,3 @@
-import logging
 from alembic import command, config
 
 from ..constants import PROJECT_ROOT

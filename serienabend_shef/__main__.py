@@ -2,9 +2,12 @@ import sys
 
 from .commands import parser
 from .helpers import log_pretty, log_json
+from .db import run_migrations
 
 
 def main():
+    run_migrations()
+
     args = parser.parse_args()
     error = None
 

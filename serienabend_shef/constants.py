@@ -1,5 +1,5 @@
 from pathlib import Path
 
-data_dir = Path.home() / ".local" / "share" / "serienabend_shef"
-sqlite_db_file = data_dir / "data.db"
-db_connection_url = f"sqlite+pysqlite:///{str(sqlite_db_file)}"
+DATA_DIR = Path.home() / ".local" / "share" / "serienabend_shef"
+SQLITE_DB_FILE = DATA_DIR / "data.db"
+DB_CONNECTION_URL = f"sqlite+pysqlite:///{str(SQLITE_DB_FILE)}"

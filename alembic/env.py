@@ -6,7 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from serienabend_shef.db import Base
-from serienabend_shef import db_connection_url
+from serienabend_shef import DB_CONNECTION_URL
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -42,7 +42,7 @@ def run_migrations_offline() -> None:
 
     """
     # url = config.get_main_option("sqlalchemy.url")
-    url = db_connection_url
+    url = DB_CONNECTION_URL
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -66,7 +66,7 @@ def run_migrations_online() -> None:
     #     prefix="sqlalchemy.",
     #     poolclass=pool.NullPool,
     # )
-    connectable = create_engine(db_connection_url, poolclass=pool.NullPool)
+    connectable = create_engine(DB_CONNECTION_URL, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)

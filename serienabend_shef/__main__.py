@@ -14,12 +14,13 @@ def main():
         error = err
         output = {"error": str(err)}
 
-    if args.format == "pretty":
-        log_pretty(output)
-    elif args.format == "json":
-        log_json(output)
-    else:
-        print(f"Unknown logging format configured: {args.format}")
+    if output is not None:
+        if args.format == "pretty":
+            log_pretty(output)
+        elif args.format == "json":
+            log_json(output)
+        else:
+            print(f"Unknown logging format configured: {args.format}")
 
     if error is not None:
         sys.exit(1)

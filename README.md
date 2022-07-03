@@ -41,7 +41,7 @@ wird.
 
 - serienabend_shef
   - Quellcode für das Hauptmodul
-- alembic
+- serienabend_shef/alembic
   - Datenbank-Migrationen
 - docs
   - Dokumentation

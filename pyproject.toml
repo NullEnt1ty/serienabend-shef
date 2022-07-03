@@ -16,3 +16,6 @@ serienabend-shef = "serienabend_shef.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["serienabend_shef*"]
+
+[tool.setuptools.package-data]
+"serienabend_shef" = ["alembic.ini"]

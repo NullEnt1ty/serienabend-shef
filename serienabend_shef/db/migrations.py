@@ -1,8 +1,8 @@
 from alembic import command, config
 
-from ..constants import PROJECT_ROOT
+from ..constants import SERIENABEND_SHEF_PACKAGE_DIR
 
-alembic_cfg = config.Config(PROJECT_ROOT / "alembic.ini")
+alembic_cfg = config.Config(SERIENABEND_SHEF_PACKAGE_DIR / "alembic.ini")
 alembic_cfg.set_main_option("enable_logging", "False")
 
 

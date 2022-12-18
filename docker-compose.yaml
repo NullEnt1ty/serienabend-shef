@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: 'mariadb:10.9.4'
+    environment:
+      MARIADB_USER: 'serienabend'
+      MARIADB_PASSWORD: 'serienabend'
+      MARIADB_DATABASE: 'serienabend'
+      MARIADB_ROOT_PASSWORD: 'root'
+    ports:
+      - '3306:3306'
+    volumes:
+      - type: 'volume'
+        source: 'mariadb-data'
+        target: '/var/lib/mysql'
+    networks:
+      - 'serienabend'
+
+  phpmyadmin:
+    image: 'phpmyadmin:5.2.0'
+    environment:
+      PMA_HOST: 'mariadb'
+    ports:
+      - '8080:80'
+    networks:
+      - 'serienabend'
+
+networks:
+  serienabend:
+
+volumes:
+  mariadb-data:

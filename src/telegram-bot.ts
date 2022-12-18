@@ -19,8 +19,8 @@ import {
   getChefByName,
   getNextChef,
   setNextChef,
-} from './chef.js';
-import { getChefData, setChefData } from './data.js';
+} from './chef';
+import { getChefData, setChefData } from './data';
 
 type ChefContext = Context & ConversationFlavor;
 type ChefConversation = Conversation<ChefContext>;

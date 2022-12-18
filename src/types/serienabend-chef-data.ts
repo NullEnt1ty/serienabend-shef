@@ -1,5 +1,5 @@
-import { Chef } from './Chef.js';
-import { HistoryEntry } from './HistoryEntry.js';
+import { Chef } from './chef';
+import { HistoryEntry } from './history-entry';
 
 export type SerienabendChefData = {
   chefs: Array<Chef>;

@@ -1,5 +1,5 @@
-import { getChefData, setChefData } from './data.js';
-import { Chef } from './types/Chef.js';
+import { getChefData, setChefData } from './data';
+import { Chef } from './types';
 
 export function getAllChefs() {
   return getChefData().chefs;

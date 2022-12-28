@@ -1,92 +1,125 @@
-import { getChefData, setChefData } from './data';
-import { Chef } from './types';
+import { knex } from './database';
+import { deleteSetting, getSetting, setSetting } from './setting';
+import { Chef, AddChef, Settings } from './types';
 
-export function getAllChefs() {
-  return getChefData().chefs;
+export async function getAllChefs() {
+  return knex('Chef').select('*');
 }
 
-export function getChefByName(name: string) {
-  const allChefs = getAllChefs();
-  return allChefs.find((chef) => {
-    return namesAreEqual(chef.name, name);
-  });
+export async function getChefByName(name: string) {
+  return knex('Chef').select('*').where('name', name).first();
 }
 
-export function addChef(name: string) {
-  if (getChefByName(name) !== undefined) {
+export async function addChef(name: string) {
+  if ((await getChefByName(name)) !== undefined) {
     throw new Error(`Chef with name '${name}' does already exist`);
   }
 
-  const newChef: Chef = {
+  const newChef: AddChef = {
     name: name,
     points: 0,
   };
 
-  const chefData = getChefData();
-  chefData.chefs.push(newChef);
-  setChefData(chefData);
+  await knex('Chef').insert(newChef);
+  const addedChef = await knex('Chef').select('*').where('name', name).first();
 
-  return newChef;
-}
-
-export function setNextChef(name: string) {
-  if (getChefByName(name) === undefined) {
-    throw new Error(`Could not find chef with name '${name}'`);
+  if (addedChef === undefined) {
+    throw new Error(`Adding chef with name '${name}' failed`);
   }
 
-  const chefData = getChefData();
-  chefData.enforcedNextChef = name;
-  setChefData(chefData);
+  return addedChef;
 }
 
-export function getNextChef() {
-  const chefData = getChefData();
+export async function setNextChef(name: string) {
+  const chef = await getChefByName(name);
 
-  if (chefData.enforcedNextChef !== undefined) {
-    const foundChef = chefData.chefs.find((chef) => {
-      return namesAreEqual(chef.name, chefData.enforcedNextChef);
-    });
-
-    return foundChef;
-  }
-
-  return getChefWithLowestPoints(chefData.chefs);
-}
-
-export function awardChefForCooking(name: string) {
-  const chef = getChefByName(name);
   if (chef === undefined) {
     throw new Error(`Could not find chef with name '${name}'`);
   }
 
-  const chefData = getChefData();
-  chef.points += 1;
-  chefData.history.push({
-    chef: name,
-    date: new Date().toISOString(),
-  });
-
-  // This might not be the best place to reset this value but it works for now.
-  delete chefData.enforcedNextChef;
-
-  setChefData(chefData);
+  await setSetting(Settings.EnforcedNextChef, chef.id.toString());
 }
 
-function getChefWithLowestPoints(chefs: Array<Chef>) {
-  if (chefs.length === 0) {
+export async function getNextChef() {
+  const enforcedNextChefId = await getSetting(Settings.EnforcedNextChef);
+
+  if (enforcedNextChefId != null) {
+    const chef = await knex('Chef')
+      .select('*')
+      .where('id', enforcedNextChefId)
+      .first();
+
+    if (chef !== undefined) {
+      return chef;
+    }
+  }
+
+  return getChefWithLowestPoints();
+}
+
+export async function resetEnforcedNextChef() {
+  await deleteSetting(Settings.EnforcedNextChef);
+}
+
+export async function awardChefForCooking(name: string) {
+  await knex.transaction(async (trx) => {
+    const chef = await knex('Chef')
+      .select('*')
+      .where('name', name)
+      .first()
+      .transacting(trx);
+
+    if (chef === undefined) {
+      throw new Error(`Could not find chef with name '${name}'`);
+    }
+
+    const newPoints = chef.points + 1;
+
+    await knex('Chef')
+      .update('points', newPoints)
+      .where('id', chef.id)
+      .transacting(trx);
+
+    // TODO: Maybe use specific time?
+    await knex('History')
+      .insert({
+        chefId: chef.id,
+        date: new Date(),
+        numberOfPersons: 1,
+      })
+      .transacting(trx);
+  });
+}
+
+async function getChefWithLowestPoints() {
+  const minPointsQuery = knex('Chef').min('points');
+  const chefsWithLowestPoints = await knex('Chef')
+    .select('*')
+    .where('points', minPointsQuery);
+
+  if (chefsWithLowestPoints.length === 0) {
     return undefined;
   }
 
-  // Array.prototype.sort sorts array in-place. Create a shallow copy so the original array does not get modified.
-  const chefsCopy = [...chefs];
-  chefsCopy.sort((aChef, bChef) => {
-    return aChef.points - bChef.points;
-  });
+  if (chefsWithLowestPoints.length === 1) {
+    return chefsWithLowestPoints[0];
+  }
 
-  return chefsCopy[0];
-}
+  const chefIds = chefsWithLowestPoints.map((chef) => chef.id);
+  const chefWhoHasntCookedForTheLongestTimeResult = await knex('History')
+    .select('chefId', 'Chef.name', 'Chef.points')
+    .max('date as lastCookedDate')
+    .whereIn('chefId', chefIds)
+    .groupBy('chefId')
+    .join('Chef', 'History.chefId', '=', 'Chef.id')
+    .orderBy('lastCookedDate', 'asc')
+    .first();
 
-function namesAreEqual(name1: string | undefined, name2: string | undefined) {
-  // TODO: Levenshtein-Distanz berechnen
-  return name1?.toLowerCase() === name2?.toLowerCase();
+  const chef: Chef = {
+    id: chefWhoHasntCookedForTheLongestTimeResult.chefId,
+    name: chefWhoHasntCookedForTheLongestTimeResult.name,
+    points: chefWhoHasntCookedForTheLongestTimeResult.points,
+  };
+
+  return chef;
 }

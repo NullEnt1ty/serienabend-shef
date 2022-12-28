@@ -1,8 +1,9 @@
 import { CronJob } from 'cron';
 import { InlineKeyboard } from 'grammy';
 import { createTelegramBot } from './telegram-bot';
-import { getChefData, persistChefData } from './data';
 import { getNextChef } from './chef';
+import { getSetting } from './setting';
+import { Settings } from './types';
 
 async function main() {
   const botToken = process.env.CHEF_BOT_TOKEN;
@@ -19,13 +20,13 @@ async function main() {
   const askWhoCookedJob = new CronJob({
     cronTime: '0 21 * * 1',
     start: true,
-    onTick: () => {
-      const linkedChatId = getChefData().linkedChatId;
-      if (linkedChatId === undefined) {
+    onTick: async () => {
+      const linkedChatId = await getSetting(Settings.LinkedChatId);
+      if (linkedChatId == null) {
         return;
       }
 
-      const nextChef = getNextChef();
+      const nextChef = await getNextChef();
       if (nextChef === undefined) {
         return;
       }
@@ -48,13 +49,13 @@ async function main() {
   const chefReminderJob = new CronJob({
     cronTime: '0 8 * * 5',
     start: true,
-    onTick: () => {
-      const linkedChatId = getChefData().linkedChatId;
-      if (linkedChatId === undefined) {
+    onTick: async () => {
+      const linkedChatId = await getSetting(Settings.LinkedChatId);
+      if (linkedChatId == null) {
         return;
       }
 
-      const nextChef = getNextChef();
+      const nextChef = await getNextChef();
       if (nextChef === undefined) {
         return;
       }
@@ -75,7 +76,6 @@ async function main() {
       askWhoCookedJob.stop();
       chefReminderJob.stop();
     } finally {
-      persistChefData();
       process.exit(0);
     }
   }

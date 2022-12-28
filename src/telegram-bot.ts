@@ -18,9 +18,11 @@ import {
   getAllChefs,
   getChefByName,
   getNextChef,
+  resetEnforcedNextChef,
   setNextChef,
 } from './chef';
-import { getChefData, setChefData } from './data';
+import { getSetting, setSetting } from './setting';
+import { Settings } from './types';
 
 type ChefContext = Context & ConversationFlavor;
 type ChefConversation = Conversation<ChefContext>;
@@ -58,19 +60,18 @@ export async function createTelegramBot(botToken: string) {
   bot.use(conversations());
   bot.use(createConversation(askWhoCooked));
 
-  bot.command('link_chat', (ctx) => {
-    const chefData = getChefData();
-    const botIsAlreadyLinked = chefData.linkedChatId !== undefined;
+  bot.command('link_chat', async (ctx) => {
+    const botIsAlreadyLinked =
+      (await getSetting(Settings.LinkedChatId)) != null;
 
     if (botIsAlreadyLinked) {
       return;
     }
 
     const chatId = ctx.msg.chat.id;
-    chefData.linkedChatId = chatId;
-    setChefData(chefData);
+    await setSetting(Settings.LinkedChatId, chatId.toString());
 
-    ctx.reply('Der Bot wurde erfolgreich mit diesem Chat verlinkt!');
+    return ctx.reply('Der Bot wurde erfolgreich mit diesem Chat verlinkt!');
   });
 
   bot.use(async (ctx, next) => {
@@ -79,16 +80,16 @@ export async function createTelegramBot(botToken: string) {
       return;
     }
 
-    const chefData = getChefData();
-    if (chefData.linkedChatId !== chatId) {
+    const linkedChatId = await getSetting(Settings.LinkedChatId);
+    if (linkedChatId !== chatId.toString()) {
       return;
     }
 
     await next();
   });
 
-  bot.command('list_chefs', (ctx) => {
-    const allChefs = getAllChefs();
+  bot.command('list_chefs', async (ctx) => {
+    const allChefs = await getAllChefs();
 
     if (allChefs.length === 0) {
       ctx.reply(
@@ -106,7 +107,7 @@ export async function createTelegramBot(botToken: string) {
     ctx.reply(`Köche:\n\n${chefLines}`);
   });
 
-  bot.command('add_chef', (ctx) => {
+  bot.command('add_chef', async (ctx) => {
     const args = getArgumentsFromText(ctx.msg.text);
     const name = args[1];
 
@@ -120,15 +121,15 @@ export async function createTelegramBot(botToken: string) {
       return;
     }
 
-    addChef(name);
+    await addChef(name);
 
-    ctx.reply(`Der Koch _${name}_ wurde hinzugefügt\\.`, {
+    return ctx.reply(`Der Koch _${name}_ wurde hinzugefügt\\.`, {
       parse_mode: 'MarkdownV2',
     });
   });
 
-  bot.command('get_next_chef', (ctx) => {
-    const nextChef = getNextChef();
+  bot.command('get_next_chef', async (ctx) => {
+    const nextChef = await getNextChef();
 
     if (nextChef === undefined) {
       ctx.reply(
@@ -137,12 +138,12 @@ export async function createTelegramBot(botToken: string) {
       return;
     }
 
-    ctx.reply(`Der nächste Koch ist _${nextChef.name}_\\.`, {
+    return ctx.reply(`Der nächste Koch ist _${nextChef.name}_\\.`, {
       parse_mode: 'MarkdownV2',
     });
   });
 
-  bot.command('set_next_chef', (ctx) => {
+  bot.command('set_next_chef', async (ctx) => {
     const args = getArgumentsFromText(ctx.msg.text);
     const name = args[1];
 
@@ -151,9 +152,9 @@ export async function createTelegramBot(botToken: string) {
       return;
     }
 
-    setNextChef(name);
+    await setNextChef(name);
 
-    ctx.reply(`Der nächste Koch wurde zu _${name}_ geändert\\.`, {
+    return ctx.reply(`Der nächste Koch wurde zu _${name}_ geändert\\.`, {
       parse_mode: 'MarkdownV2',
     });
   });
@@ -179,17 +180,18 @@ export async function createTelegramBot(botToken: string) {
     await ctx.answerCallbackQuery();
     await ctx.editMessageReplyMarkup(undefined);
 
-    const nextChef = getNextChef();
+    const nextChef = await getNextChef();
     if (nextChef === undefined) {
       return;
     }
 
-    await ctx.reply(
+    await awardChefForCooking(nextChef.name);
+    await resetEnforcedNextChef();
+
+    return ctx.reply(
       `Alles klar, _${nextChef.name}_ hat einen Punkt verdient\\!`,
       { parse_mode: 'MarkdownV2' }
     );
-
-    awardChefForCooking(nextChef.name);
   });
 
   bot.callbackQuery('chef_has_not_cooked', async (ctx) => {
@@ -202,7 +204,7 @@ export async function createTelegramBot(botToken: string) {
 }
 
 async function askWhoCooked(conversation: ChefConversation, ctx: ChefContext) {
-  const allChefs = getAllChefs();
+  const allChefs = await getAllChefs();
   const chefNames = allChefs.map((chef) => chef.name);
   const chefListKeyboardButtons = chefNames.map((chefId) => [chefId]);
   chefListKeyboardButtons.unshift([nobody]);
@@ -212,14 +214,13 @@ async function askWhoCooked(conversation: ChefConversation, ctx: ChefContext) {
   const { message } = await conversation.waitFor('message:text');
 
   if (message.text === nobody) {
-    ctx.reply('Gut, dann kriegt halt niemand einen Punkt! 🤷‍♀️', {
+    return ctx.reply('Gut, dann kriegt halt niemand einen Punkt! 🤷‍♀️', {
       reply_markup: { remove_keyboard: true },
     });
-    return;
   }
 
   const chefName = message.text;
-  const chef = getChefByName(chefName);
+  const chef = await getChefByName(chefName);
 
   if (chef === undefined) {
     ctx.reply(`Es wurde kein Chef mit dem Namen _${chefName}_ gefunden\\.`, {
@@ -229,12 +230,13 @@ async function askWhoCooked(conversation: ChefConversation, ctx: ChefContext) {
     return;
   }
 
-  await ctx.reply(`Alles klar, _${chef.name}_ hat einen Punkt verdient\\!`, {
+  await awardChefForCooking(chef.name);
+  await resetEnforcedNextChef();
+
+  return ctx.reply(`Alles klar, _${chef.name}_ hat einen Punkt verdient\\!`, {
     parse_mode: 'MarkdownV2',
     reply_markup: { remove_keyboard: true },
   });
-
-  awardChefForCooking(chef.name);
 }
 
 function getArgumentsFromText(text: string) {

@@ -4,16 +4,18 @@ import { createTelegramBot } from './telegram-bot';
 import { getNextChef } from './chef';
 import { getSetting } from './setting';
 import { Settings } from './types';
+import { loadConfig } from './config';
 
 async function main() {
-  const botToken = process.env.CHEF_BOT_TOKEN;
-  if (botToken === undefined) {
-    console.log('Missing env variable CHEF_BOT_TOKEN');
+  const configPath = process.env.CHEF_CONFIG;
+  if (configPath === undefined) {
+    console.error('Missing environment variable CHEF_CONFIG');
     process.exit(1);
   }
+  const config = loadConfig(configPath);
 
   console.log('Starting Telegram bot ...');
-  const telegramBot = await createTelegramBot(botToken);
+  const telegramBot = await createTelegramBot(config.botToken);
   telegramBot.start();
 
   console.log('Scheduling jobs ...');

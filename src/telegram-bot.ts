@@ -200,6 +200,18 @@ export async function createTelegramBot(botToken: string) {
     await ctx.conversation.enter('askWhoCooked');
   });
 
+  bot.hears(/guter|good bot/i, async (ctx) => {
+    return ctx.replyWithSticker(
+      'CAACAgUAAxkBAAEbeeZjrXI9SxNw2A9cBLeUeX7xpMWlGgACaQYAAnSN4FavS-cAAWo9ekssBA'
+    );
+  });
+
+  bot.hears(/schlechter|böser|bad bot/i, async (ctx) => {
+    return ctx.replyWithSticker(
+      'CAACAgUAAxkBAAEbeeJjrXHgNmoPTYpYjjP5Wqx3QEnfZAACtgYAAkno6VeKA2M-fcIveSwE'
+    );
+  });
+
   return bot;
 }
 

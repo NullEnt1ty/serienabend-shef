@@ -41,6 +41,12 @@ Jetzt kann die Anwendung wie folgt gestartet werden:
 CHEF_CONFIG=<PFAD_ZU_CONFIG_DATEI> npm run dev
 ```
 
+### Datenbank-Verwaltung
+
+Wenn das Dev-Setup (siehe [docker-compose.yaml](docker-compose.yaml)) verwendet wird, kann die Datenbank mit phpMyAdmin
+über den Browser verwaltet werden. Die Webseite ist unter http://localhost:8080 zu erreichen. Benutzername und Passwort
+lauten `root`.
+
 ## Projekt bauen
 
 Das Projekt kann mit folgendem Befehl gebaut werden:

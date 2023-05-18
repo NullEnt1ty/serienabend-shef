@@ -118,6 +118,11 @@ async function getChefWithLowestPoints() {
     .orderBy('lastCookedDate', 'asc')
     .first();
 
+  // History might be empty. In this case just return the first chef with lowest points.
+  if (chefWhoHasntCookedForTheLongestTimeResult === undefined) {
+    return chefsWithLowestPoints[0];
+  }
+
   const chef: Chef = {
     id: chefWhoHasntCookedForTheLongestTimeResult.chefId,
     name: chefWhoHasntCookedForTheLongestTimeResult.name,

@@ -24,7 +24,7 @@ import {
 import { getSetting, setSetting } from './setting';
 import { Settings } from './types';
 
-type ChefContext = Context & ConversationFlavor;
+export type ChefContext = Context & ConversationFlavor;
 type ChefConversation = Conversation<ChefContext>;
 
 const nobody = 'Niemand';
@@ -253,7 +253,7 @@ async function askWhoCooked(conversation: ChefConversation, ctx: ChefContext) {
 
 function getArgumentsFromText(text: string) {
   const regex = /[^\s"]+|"([^"]*)"/gi;
-  const args: Array<string | undefined> = [];
+  const args: (string | undefined)[] = [];
   let match;
 
   while ((match = regex.exec(text)) != null) {

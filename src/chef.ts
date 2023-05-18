@@ -15,9 +15,12 @@ export async function addChef(name: string) {
     throw new Error(`Chef with name '${name}' does already exist`);
   }
 
+  // Give the new chef the lowest score of the current chefs so they don't lag behind.
+  const lowestPoints = await getLowestPoints();
+
   const newChef: AddChef = {
     name: name,
-    points: 0,
+    points: lowestPoints,
   };
 
   await knex('Chef').insert(newChef);
@@ -122,4 +125,17 @@ async function getChefWithLowestPoints() {
   };
 
   return chef;
+}
+
+async function getLowestPoints() {
+  // Unfortunately, Knex returns the wrong type when using an alias.
+  const lowestPointsResult = (await knex('Chef')
+    .min('points as lowestPoints')
+    .first()) as { lowestPoints: number | null } | undefined;
+
+  if (lowestPointsResult == null || lowestPointsResult.lowestPoints == null) {
+    return 0;
+  }
+
+  return lowestPointsResult.lowestPoints;
 }

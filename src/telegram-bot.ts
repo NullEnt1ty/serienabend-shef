@@ -16,6 +16,7 @@ import {
   addChef,
   awardChefForCooking,
   getAllChefs,
+  getAllChefsSortedByPointsAndLastCookedDate,
   getChefByName,
   getNextChef,
   resetEnforcedNextChef,
@@ -89,7 +90,8 @@ export async function createTelegramBot(botToken: string) {
   });
 
   bot.command('list_chefs', async (ctx) => {
-    const allChefs = await getAllChefs();
+    const allChefs = await getAllChefsSortedByPointsAndLastCookedDate();
+    const nextChef = await getNextChef();
 
     if (allChefs.length === 0) {
       ctx.reply(
@@ -101,7 +103,9 @@ export async function createTelegramBot(botToken: string) {
     const chefLines = allChefs
       .map((chef) => {
         const pointsWord = chef.points === 1 ? 'Punkt' : 'Punkte';
-        return `${chef.name} (${chef.points} ${pointsWord})`;
+        const isNextChef = nextChef !== undefined && chef.id === nextChef.id;
+        const nextChefIndicator = isNextChef ? ' (nächster Koch)' : '';
+        return `${chef.name}: ${chef.points} ${pointsWord}${nextChefIndicator}`;
       })
       .join('\n');
     ctx.reply(`Köche:\n\n${chefLines}`);

@@ -6,6 +6,29 @@ export async function getAllChefs() {
   return knex('Chef').select('*');
 }
 
+export async function getAllChefsSortedByPointsAndLastCookedDate() {
+  // Knex returns the wrong type again...
+  const allChefsWithLastCookedDateResult = (await knex('Chef')
+    .select('Chef.*')
+    .max('History.date as lastCookedDate')
+    .groupBy('Chef.id')
+    .leftJoin('History', 'Chef.id', 'History.chefId')
+    .orderBy('points', 'asc')
+    .orderBy('lastCookedDate', 'asc')) as (Chef & {
+    lastCookedDate: Date | null;
+  })[];
+
+  const chefsWithoutLastCookedDate = allChefsWithLastCookedDateResult.map(
+    (chefWithLastCookedDate): Chef => {
+      const { lastCookedDate, ...chefWithoutLastCookedDate } =
+        chefWithLastCookedDate;
+      return chefWithoutLastCookedDate;
+    }
+  );
+
+  return chefsWithoutLastCookedDate;
+}
+
 export async function getChefByName(name: string) {
   return knex('Chef').select('*').where('name', name).first();
 }

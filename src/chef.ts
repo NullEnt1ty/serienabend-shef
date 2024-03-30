@@ -1,6 +1,6 @@
 import { knex } from './database';
 import { deleteSetting, getSetting, setSetting } from './setting';
-import { Chef, AddChef, Settings } from './types';
+import { type Chef, type AddChef, Settings } from './types';
 
 export async function getAllChefs() {
   return knex('Chef').select('*');

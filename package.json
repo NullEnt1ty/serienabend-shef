@@ -1,11 +1,11 @@
 {
   "name": "serienabend-shef",
   "version": "1.1.0",
-  "description": "",
-  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "dev": "nodemon src/app.ts",
-    "build": "tsc"
+    "dev": "bun --watch src/app.ts",
+    "start": "bun src/app.ts",
+    "typecheck": "tsc"
   },
   "author": "Dominique Mattern <dominique@mattern.dev>",
   "license": "MIT",
@@ -18,10 +18,8 @@
     "yup": "^1.4.0"
   },
   "devDependencies": {
-    "@types/node": "^20.12.2",
-    "nodemon": "^3.1.0",
+    "@types/bun": "^1.0.11",
     "prettier": "^3.2.5",
-    "ts-node": "^10.9.2",
     "typescript": "~5.3.0"
   }
 }

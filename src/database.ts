@@ -1,6 +1,6 @@
 import { knex as _knex } from 'knex';
 import { getConfig } from './config';
-import { Chef, History, Setting } from './types';
+import { type Chef, type History, type Setting } from './types';
 
 export const knex = _knex({
   client: 'mysql2',

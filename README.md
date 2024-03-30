@@ -10,8 +10,7 @@ documentation is in german but feel free to steal as much code as you'd like! Th
 
 ### Voraussetzungen
 
-- Node.js >= 18
-- npm >= 7 (i.d.R. mit Node.js ausgeliefert)
+- Bun >= 1.0.36
 - MariaDB >= 10 (siehe `docker-compose.yaml`). MySQL sollte auch funktionieren, wurde aber nicht getestet.
 
 ### Installation
@@ -19,7 +18,7 @@ documentation is in german but feel free to steal as much code as you'd like! Th
 1. Abhängigkeiten installieren
 
    ```shell
-   npm install
+   bun install
    ```
 
 ### Verwendung
@@ -38,7 +37,7 @@ Telegram-Bot ergänzt werden.
 Jetzt kann die Anwendung wie folgt gestartet werden:
 
 ```shell
-CHEF_CONFIG=<PFAD_ZU_CONFIG_DATEI> npm run dev
+CHEF_CONFIG=<PFAD_ZU_CONFIG_DATEI> bun run dev
 ```
 
 ### Datenbank-Verwaltung
@@ -46,13 +45,3 @@ CHEF_CONFIG=<PFAD_ZU_CONFIG_DATEI> npm run dev
 Wenn das Dev-Setup (siehe [docker-compose.yaml](docker-compose.yaml)) verwendet wird, kann die Datenbank mit phpMyAdmin
 über den Browser verwaltet werden. Die Webseite ist unter http://localhost:8080 zu erreichen. Benutzername und Passwort
 lauten `root`.
-
-## Projekt bauen
-
-Das Projekt kann mit folgendem Befehl gebaut werden:
-
-```shell
-npm run build
-```
-
-Das Kompilat befindet sich im Ordner `<Projektverzeichnis>/dist`.

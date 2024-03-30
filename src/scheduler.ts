@@ -1,6 +1,6 @@
 import { Bot, InlineKeyboard } from 'grammy';
 import { CronJob } from 'cron';
-import { ChefContext } from './telegram-bot';
+import { type ChefContext } from './telegram-bot';
 import { getSetting } from './setting';
 import { Settings } from './types';
 import { getNextChef } from './chef';

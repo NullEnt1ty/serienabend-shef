@@ -3,7 +3,7 @@ import { loadConfig } from './config';
 import { initializeJobs, stopAllJobs } from './scheduler';
 
 async function main() {
-  const configPath = process.env.CHEF_CONFIG;
+  const configPath = process.env['CHEF_CONFIG'];
   if (configPath === undefined) {
     console.error('Missing environment variable CHEF_CONFIG');
     process.exit(1);

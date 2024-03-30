@@ -8,7 +8,7 @@ import { getNextChef } from './chef';
 const runningJobs: CronJob[] = [];
 
 export function initializeJobs(telegramBot: Bot<ChefContext>) {
-  const askWhoCookedJob = new CronJob({
+  const askWhoCookedJob = CronJob.from({
     cronTime: '0 21 * * 1',
     start: true,
     onTick: async () => {
@@ -38,7 +38,7 @@ export function initializeJobs(telegramBot: Bot<ChefContext>) {
   });
   runningJobs.push(askWhoCookedJob);
 
-  const chefReminderJob = new CronJob({
+  const chefReminderJob = CronJob.from({
     cronTime: '0 8 * * 5',
     start: true,
     onTick: async () => {

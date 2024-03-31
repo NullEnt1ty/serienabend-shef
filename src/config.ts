@@ -17,13 +17,24 @@ let _config: Config | undefined;
 
 export function getConfig() {
   if (_config === undefined) {
-    throw new Error('Config has not been loaded yet');
+    const configPath = getConfigPath();
+    return loadConfig(configPath);
   }
 
   return _config;
 }
 
-export function loadConfig(path: string) {
+function getConfigPath() {
+  const configPath = process.env['CHEF_CONFIG'];
+  if (configPath == null) {
+    console.error('Missing environment variable CHEF_CONFIG');
+    process.exit(1);
+  }
+
+  return configPath;
+}
+
+function loadConfig(path: string) {
   try {
     const rawConfig = fs.readFileSync(path, { encoding: 'utf-8' });
     const parsedConfig = JSON.parse(rawConfig);

@@ -1,36 +1,25 @@
-import { knex } from './database';
+import { asc, eq, getTableColumns, inArray, max, min } from 'drizzle-orm';
+import { db } from './database';
+import { chef, type Chef, type NewChef, history, Settings } from './schemas';
 import { deleteSetting, getSetting, setSetting } from './setting';
-import { type Chef, type AddChef, Settings } from './types';
 
 export async function getAllChefs() {
-  return knex('Chef').select('*');
+  return db.select().from(chef);
 }
 
 export async function getAllChefsSortedByPointsAndLastCookedDate() {
-  // Knex returns the wrong type again...
-  const allChefsWithLastCookedDateResult = (await knex('Chef')
-    .select('Chef.*')
-    .max('History.date as lastCookedDate')
-    .groupBy('Chef.id')
-    .leftJoin('History', 'Chef.id', 'History.chefId')
-    .orderBy('points', 'asc')
-    .orderBy('lastCookedDate', 'asc')) as (Chef & {
-    lastCookedDate: Date | null;
-  })[];
-
-  const chefsWithoutLastCookedDate = allChefsWithLastCookedDateResult.map(
-    (chefWithLastCookedDate): Chef => {
-      const { lastCookedDate, ...chefWithoutLastCookedDate } =
-        chefWithLastCookedDate;
-      return chefWithoutLastCookedDate;
-    }
-  );
-
-  return chefsWithoutLastCookedDate;
+  return db
+    .select(getTableColumns(chef))
+    .from(chef)
+    .leftJoin(history, eq(chef.id, history.chefId))
+    .groupBy(chef.id)
+    .orderBy(asc(chef.points), asc(max(history.date)));
 }
 
 export async function getChefByName(name: string) {
-  return knex('Chef').select('*').where('name', name).first();
+  return db.query.chef.findFirst({
+    where: eq(chef.name, name),
+  });
 }
 
 export async function addChef(name: string) {
@@ -41,13 +30,13 @@ export async function addChef(name: string) {
   // Give the new chef the lowest score of the current chefs so they don't lag behind.
   const lowestPoints = await getLowestPoints();
 
-  const newChef: AddChef = {
+  const newChef: NewChef = {
     name: name,
     points: lowestPoints,
   };
 
-  await knex('Chef').insert(newChef);
-  const addedChef = await knex('Chef').select('*').where('name', name).first();
+  await db.insert(chef).values(newChef);
+  const addedChef = await getChefByName(name);
 
   if (addedChef === undefined) {
     throw new Error(`Adding chef with name '${name}' failed`);
@@ -57,26 +46,25 @@ export async function addChef(name: string) {
 }
 
 export async function setNextChef(name: string) {
-  const chef = await getChefByName(name);
+  const _chef = await getChefByName(name);
 
-  if (chef === undefined) {
+  if (_chef === undefined) {
     throw new Error(`Could not find chef with name '${name}'`);
   }
 
-  await setSetting(Settings.EnforcedNextChef, chef.id.toString());
+  await setSetting(Settings.EnforcedNextChef, _chef.id.toString());
 }
 
 export async function getNextChef() {
   const enforcedNextChefId = await getSetting(Settings.EnforcedNextChef);
 
   if (enforcedNextChefId != null) {
-    const chef = await knex('Chef')
-      .select('*')
-      .where('id', enforcedNextChefId)
-      .first();
+    const _chef = await db.query.chef.findFirst({
+      where: eq(chef.id, Number.parseInt(enforcedNextChefId)),
+    });
 
-    if (chef !== undefined) {
-      return chef;
+    if (_chef !== undefined) {
+      return _chef;
     }
   }
 
@@ -88,40 +76,37 @@ export async function resetEnforcedNextChef() {
 }
 
 export async function awardChefForCooking(name: string) {
-  await knex.transaction(async (trx) => {
-    const chef = await knex('Chef')
-      .select('*')
-      .where('name', name)
-      .first()
-      .transacting(trx);
+  await db.transaction(async (trx) => {
+    const _chef = await trx.query.chef.findFirst({
+      where: eq(chef.name, name),
+    });
 
-    if (chef === undefined) {
+    if (_chef === undefined) {
       throw new Error(`Could not find chef with name '${name}'`);
     }
 
-    const newPoints = chef.points + 1;
+    const newPoints = _chef.points + 1;
 
-    await knex('Chef')
-      .update('points', newPoints)
-      .where('id', chef.id)
-      .transacting(trx);
+    await trx
+      .update(chef)
+      .set({ points: newPoints })
+      .where(eq(chef.id, _chef.id));
 
     // TODO: Maybe use specific time?
-    await knex('History')
-      .insert({
-        chefId: chef.id,
-        date: new Date(),
-        numberOfPersons: 1,
-      })
-      .transacting(trx);
+    await trx.insert(history).values({
+      chefId: _chef.id,
+      date: new Date(),
+      numberOfPersons: 1,
+    });
   });
 }
 
 async function getChefWithLowestPoints() {
-  const minPointsQuery = knex('Chef').min('points');
-  const chefsWithLowestPoints = await knex('Chef')
-    .select('*')
-    .where('points', minPointsQuery);
+  const minPointsQuery = db.select({ value: min(chef.points) }).from(chef);
+  const chefsWithLowestPoints = await db
+    .select()
+    .from(chef)
+    .where(eq(chef.points, minPointsQuery));
 
   if (chefsWithLowestPoints.length === 0) {
     return undefined;
@@ -132,34 +117,41 @@ async function getChefWithLowestPoints() {
   }
 
   const chefIds = chefsWithLowestPoints.map((chef) => chef.id);
-  const chefWhoHasntCookedForTheLongestTimeResult = await knex('History')
-    .select('chefId', 'Chef.name', 'Chef.points')
-    .max('date as lastCookedDate')
-    .whereIn('chefId', chefIds)
-    .groupBy('chefId')
-    .join('Chef', 'History.chefId', '=', 'Chef.id')
-    .orderBy('lastCookedDate', 'asc')
-    .first();
+  const chefsWhoHaventCookedForTheLongestTimeResult = await db
+    .select({
+      chefId: history.chefId,
+      name: chef.name,
+      points: chef.points,
+    })
+    .from(history)
+    .innerJoin(chef, eq(history.chefId, chef.id))
+    .where(inArray(chef.id, chefIds))
+    .groupBy(history.chefId)
+    .orderBy(asc(max(history.date)))
+    .limit(1);
+  const chefWhoHasntCookedForTheLongestTimeResult =
+    chefsWhoHaventCookedForTheLongestTimeResult[0];
 
   // History might be empty. In this case just return the first chef with lowest points.
   if (chefWhoHasntCookedForTheLongestTimeResult === undefined) {
     return chefsWithLowestPoints[0];
   }
 
-  const chef: Chef = {
+  const _chef: Chef = {
     id: chefWhoHasntCookedForTheLongestTimeResult.chefId,
     name: chefWhoHasntCookedForTheLongestTimeResult.name,
     points: chefWhoHasntCookedForTheLongestTimeResult.points,
   };
 
-  return chef;
+  return _chef;
 }
 
 async function getLowestPoints() {
-  // Unfortunately, Knex returns the wrong type when using an alias.
-  const lowestPointsResult = (await knex('Chef')
-    .min('points as lowestPoints')
-    .first()) as { lowestPoints: number | null } | undefined;
+  const lowestPointsResults = await db
+    .select({ lowestPoints: min(chef.points) })
+    .from(chef)
+    .limit(1);
+  const lowestPointsResult = lowestPointsResults[0];
 
   if (lowestPointsResult == null || lowestPointsResult.lowestPoints == null) {
     return 0;

@@ -1,5 +1,6 @@
-import { knex } from './database';
-import { Settings } from './types';
+import { eq } from 'drizzle-orm';
+import { db } from './database';
+import { Settings, setting } from './schemas';
 
 const cachedSettings = new Map<Settings, string | null | undefined>();
 
@@ -8,10 +9,9 @@ export async function getSetting(key: Settings) {
     return cachedSettings.get(key);
   }
 
-  const result = await knex('Setting')
-    .select('settingsValue')
-    .where('settingsKey', key)
-    .first();
+  const result = await db.query.setting.findFirst({
+    where: eq(setting.settingsKey, key),
+  });
 
   const value = result?.settingsValue;
   cachedSettings.set(key, value);
@@ -22,16 +22,16 @@ export async function getSetting(key: Settings) {
 export async function setSetting(key: Settings, value: string | null) {
   cachedSettings.set(key, value);
 
-  await knex('Setting')
-    .insert({
+  await db
+    .insert(setting)
+    .values({
       settingsKey: key,
       settingsValue: value,
     })
-    .onConflict('settingsKey')
-    .merge();
+    .onDuplicateKeyUpdate({ set: { settingsValue: value } });
 }
 
 export async function deleteSetting(key: Settings) {
   cachedSettings.delete(key);
-  await knex('Setting').where('settingsKey', key).delete();
+  await db.delete(setting).where(eq(setting.settingsKey, key));
 }

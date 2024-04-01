@@ -2,8 +2,8 @@ import { Bot, InlineKeyboard } from 'grammy';
 import { CronJob } from 'cron';
 import { type ChefContext } from './telegram-bot';
 import { getSetting } from './setting';
-import { Settings } from './types';
 import { getNextChef } from './chef';
+import { Settings } from './schemas';
 
 const runningJobs: CronJob[] = [];
 
@@ -32,7 +32,7 @@ export function initializeJobs(telegramBot: Bot<ChefContext>) {
         {
           parse_mode: 'MarkdownV2',
           reply_markup: inlineKeyboard,
-        }
+        },
       );
     },
   });
@@ -55,7 +55,7 @@ export function initializeJobs(telegramBot: Bot<ChefContext>) {
       telegramBot.api.sendMessage(
         linkedChatId,
         `Erinnerung 🔔: Am Montag ist _${nextChef.name}_ mit Kochen dran\\. Der Koch kann mit _/set\\_next\\_chef \\<Name des Kochs\\>_ geändert werden\\.`,
-        { parse_mode: 'MarkdownV2' }
+        { parse_mode: 'MarkdownV2' },
       );
     },
   });

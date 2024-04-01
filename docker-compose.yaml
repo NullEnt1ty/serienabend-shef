@@ -15,7 +15,7 @@ services:
         source: 'mariadb-data'
         target: '/var/lib/mysql'
       - type: 'bind'
-        source: './sql/tables.sql'
+        source: './sql/0000_organic_bruce_banner.sql'
         target: '/docker-entrypoint-initdb.d/serienabend_tables.sql'
         read_only: true
     networks:

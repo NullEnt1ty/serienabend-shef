@@ -1,19 +1,18 @@
-import { knex as _knex } from 'knex';
+import mysql from 'mysql2/promise';
+import { drizzle } from 'drizzle-orm/mysql2';
 import { getConfig } from './config';
-import { type Chef, type History, type Setting } from './types';
+import { allSchemas } from './schemas';
 
-export const knex = _knex({
-  client: 'mysql2',
-  connection: () => {
-    const config = getConfig();
-    return config.database;
-  },
+const config = getConfig();
+
+const pool = mysql.createPool({
+  host: config.database.host,
+  user: config.database.user,
+  password: config.database.password,
+  database: config.database.database,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 10,
 });
 
-declare module 'knex/types/tables' {
-  interface Tables {
-    Chef: Chef;
-    History: History;
-    Setting: Setting;
-  }
-}
+export const db = drizzle(pool, { schema: allSchemas, mode: 'default' });

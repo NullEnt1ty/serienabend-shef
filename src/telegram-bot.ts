@@ -23,7 +23,7 @@ import {
   setNextChef,
 } from './chef';
 import { getSetting, setSetting } from './setting';
-import { Settings } from './types';
+import { Settings } from './schemas';
 
 export type ChefContext = Context & ConversationFlavor;
 type ChefConversation = Conversation<ChefContext>;
@@ -55,7 +55,7 @@ export async function createTelegramBot(botToken: string) {
       initial: () => {
         return {};
       },
-    })
+    }),
   );
 
   bot.use(conversations());
@@ -95,7 +95,7 @@ export async function createTelegramBot(botToken: string) {
 
     if (allChefs.length === 0) {
       ctx.reply(
-        'Es gibt noch keine Köche. Füge einen Koch mit /add_chef hinzu.'
+        'Es gibt noch keine Köche. Füge einen Koch mit /add_chef hinzu.',
       );
       return;
     }
@@ -137,7 +137,7 @@ export async function createTelegramBot(botToken: string) {
 
     if (nextChef === undefined) {
       ctx.reply(
-        'Der nächste Koch steht noch nicht fest. Eventuell müssen erst noch Köche mit /add_chef hinzugefügt werden.'
+        'Der nächste Koch steht noch nicht fest. Eventuell müssen erst noch Köche mit /add_chef hinzugefügt werden.',
       );
       return;
     }
@@ -194,7 +194,7 @@ export async function createTelegramBot(botToken: string) {
 
     return ctx.reply(
       `Alles klar, _${nextChef.name}_ hat einen Punkt verdient\\!`,
-      { parse_mode: 'MarkdownV2' }
+      { parse_mode: 'MarkdownV2' },
     );
   });
 
@@ -206,13 +206,13 @@ export async function createTelegramBot(botToken: string) {
 
   bot.hears(/guter|good bot/i, async (ctx) => {
     return ctx.replyWithSticker(
-      'CAACAgUAAxkBAAEbeeZjrXI9SxNw2A9cBLeUeX7xpMWlGgACaQYAAnSN4FavS-cAAWo9ekssBA'
+      'CAACAgUAAxkBAAEbeeZjrXI9SxNw2A9cBLeUeX7xpMWlGgACaQYAAnSN4FavS-cAAWo9ekssBA',
     );
   });
 
   bot.hears(/schlechter|böser|bad bot/i, async (ctx) => {
     return ctx.replyWithSticker(
-      'CAACAgUAAxkBAAEbeeJjrXHgNmoPTYpYjjP5Wqx3QEnfZAACtgYAAkno6VeKA2M-fcIveSwE'
+      'CAACAgUAAxkBAAEbeeJjrXHgNmoPTYpYjjP5Wqx3QEnfZAACtgYAAkno6VeKA2M-fcIveSwE',
     );
   });
 

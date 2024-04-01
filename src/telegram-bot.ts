@@ -156,11 +156,14 @@ export async function createTelegramBot(botToken: string) {
       return;
     }
 
-    await setNextChef(name);
+    const newNextChef = await setNextChef(name);
 
-    return ctx.reply(`Der nächste Koch wurde zu _${name}_ geändert\\.`, {
-      parse_mode: 'MarkdownV2',
-    });
+    return ctx.reply(
+      `Der nächste Koch wurde zu _${newNextChef.name}_ geändert\\.`,
+      {
+        parse_mode: 'MarkdownV2',
+      },
+    );
   });
 
   bot.command('debug', async (ctx) => {

@@ -53,6 +53,8 @@ export async function setNextChef(name: string) {
   }
 
   await setSetting(Settings.EnforcedNextChef, _chef.id.toString());
+
+  return _chef;
 }
 
 export async function getNextChef() {

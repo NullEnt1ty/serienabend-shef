@@ -5,6 +5,12 @@ import {
   createConversation,
 } from '@grammyjs/conversations';
 import {
+  type ParseModeFlavor,
+  hydrateReply,
+  bold,
+  fmt,
+} from '@grammyjs/parse-mode';
+import {
   Bot,
   type Context,
   session,
@@ -25,7 +31,9 @@ import {
 import { getSetting, setSetting } from './setting';
 import { Settings } from './schemas';
 
-export type ChefContext = Context & ConversationFlavor;
+export type ChefContext = Context &
+  ConversationFlavor &
+  ParseModeFlavor<Context>;
 type ChefConversation = Conversation<ChefContext>;
 
 const nobody = 'Niemand';
@@ -49,6 +57,8 @@ export async function createTelegramBot(botToken: string) {
       e instanceof Error ? e.message : 'Unbekannter Fehler (siehe Konsole)';
     ctx.reply(`Upsi, es ist ein Fehler aufgetreten:\n\n${errorMessage}`);
   });
+
+  bot.use(hydrateReply);
 
   bot.use(
     session({
@@ -127,9 +137,7 @@ export async function createTelegramBot(botToken: string) {
       return;
     }
 
-    return ctx.reply(`Der nächste Koch ist _${nextChef.name}_\\.`, {
-      parse_mode: 'MarkdownV2',
-    });
+    return ctx.replyFmt(fmt`Der nächste Koch ist ${bold(nextChef.name)}.`);
   });
 
   bot.command('set_next_chef', async (ctx) => {
@@ -165,9 +173,8 @@ export async function createTelegramBot(botToken: string) {
     await awardChefForCooking(nextChef.name);
     await resetEnforcedNextChef();
 
-    return ctx.reply(
-      `Alles klar, _${nextChef.name}_ hat einen Punkt verdient\\!`,
-      { parse_mode: 'MarkdownV2' },
+    return ctx.replyFmt(
+      fmt`Alles klar, ${bold(nextChef.name)} hat einen Punkt verdient!`,
     );
   });
 
@@ -215,10 +222,10 @@ async function whoCookedConversation(
   const chef = await getChefByName(chefName);
 
   if (chef == null) {
-    ctx.reply(`Es wurde kein Koch mit dem Namen _${chefName}_ gefunden\\.`, {
-      parse_mode: 'MarkdownV2',
-      reply_markup: { remove_keyboard: true },
-    });
+    ctx.replyFmt(
+      fmt`Es wurde kein Koch mit dem Namen ${bold(chefName)} gefunden.`,
+      { reply_markup: { remove_keyboard: true } },
+    );
     return;
   }
 
@@ -227,10 +234,10 @@ async function whoCookedConversation(
     await resetEnforcedNextChef();
   });
 
-  return ctx.reply(`Alles klar, _${chef.name}_ hat einen Punkt verdient\\!`, {
-    parse_mode: 'MarkdownV2',
-    reply_markup: { remove_keyboard: true },
-  });
+  return ctx.replyFmt(
+    fmt`Alles klar, ${bold(chef.name)} hat einen Punkt verdient!`,
+    { reply_markup: { remove_keyboard: true } },
+  );
 }
 
 async function addChefConversation(
@@ -251,17 +258,15 @@ async function addChefConversation(
     getChefByName(chefName),
   );
   if (existingChefWithSameName != null) {
-    ctx.reply(`Es existiert bereits ein Koch mit dem Namen _${chefName}_\\.`, {
-      parse_mode: 'MarkdownV2',
-    });
+    ctx.replyFmt(
+      fmt`Es existiert bereits ein Koch mit dem Namen ${bold(chefName)}.`,
+    );
     return;
   }
 
   await conversation.external(() => addChef(chefName));
 
-  return ctx.reply(`Der Koch _${chefName}_ wurde hinzugefügt\\.`, {
-    parse_mode: 'MarkdownV2',
-  });
+  return ctx.replyFmt(fmt`Der Koch ${bold(chefName)} wurde hinzugefügt.`);
 }
 
 async function setNextChefConversation(
@@ -282,21 +287,18 @@ async function setNextChefConversation(
   const chef = await conversation.external(() => getChefByName(chefName));
 
   if (chef == null) {
-    ctx.reply(`Es wurde kein Koch mit dem Namen _${chefName}_ gefunden\\.`, {
-      parse_mode: 'MarkdownV2',
-      reply_markup: { remove_keyboard: true },
-    });
+    ctx.replyFmt(
+      fmt`Es wurde kein Koch mit dem Namen ${bold(chefName)} gefunden.`,
+      { reply_markup: { remove_keyboard: true } },
+    );
     return;
   }
 
   const newNextChef = await conversation.external(() => setNextChef(chef.name));
 
-  return ctx.reply(
-    `Der nächste Koch wurde zu _${newNextChef.name}_ geändert\\.`,
-    {
-      parse_mode: 'MarkdownV2',
-      reply_markup: { remove_keyboard: true },
-    },
+  return ctx.replyFmt(
+    fmt`Der nächste Koch wurde zu ${bold(newNextChef.name)} geändert.`,
+    { reply_markup: { remove_keyboard: true } },
   );
 }
 

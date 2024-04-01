@@ -223,7 +223,7 @@ export async function createTelegramBot(botToken: string) {
 }
 
 async function askWhoCooked(conversation: ChefConversation, ctx: ChefContext) {
-  const allChefs = await getAllChefs();
+  const allChefs = await conversation.external(() => getAllChefs());
   const chefNames = allChefs.map((chef) => chef.name);
   const chefListKeyboardButtons = chefNames.map((chefId) => [chefId]);
   chefListKeyboardButtons.unshift([nobody]);
@@ -249,8 +249,10 @@ async function askWhoCooked(conversation: ChefConversation, ctx: ChefContext) {
     return;
   }
 
-  await awardChefForCooking(chef.name);
-  await resetEnforcedNextChef();
+  await conversation.external(async () => {
+    await awardChefForCooking(chef.name);
+    await resetEnforcedNextChef();
+  });
 
   return ctx.reply(`Alles klar, _${chef.name}_ hat einen Punkt verdient\\!`, {
     parse_mode: 'MarkdownV2',

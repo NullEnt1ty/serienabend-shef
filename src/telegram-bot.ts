@@ -137,7 +137,9 @@ export async function createTelegramBot(botToken: string) {
       return;
     }
 
-    return ctx.replyFmt(fmt`Der nächste Koch ist ${bold(nextChef.name)}.`);
+    return ctx.replyFmt(
+      fmt`Der nächste Koch ist ${bold(nextChef.name)}. Benutze /set_next_chef um den nächsten Koch zu ändern.`,
+    );
   });
 
   bot.command('set_next_chef', async (ctx) => {

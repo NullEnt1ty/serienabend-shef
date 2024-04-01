@@ -6,5 +6,9 @@
     "user": "serienabend",
     "password": "serienabend",
     "database": "serienabend"
+  },
+  "openAi": {
+    "enabled": false,
+    "apiKey": "<OPENAI_API_KEY>"
   }
 }

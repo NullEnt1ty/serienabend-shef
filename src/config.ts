@@ -10,6 +10,10 @@ const configSchema = yup.object({
     password: yup.string().required(),
     database: yup.string().required(),
   }),
+  openAi: yup.object({
+    enabled: yup.boolean().required().default(false),
+    apiKey: yup.string(),
+  }),
 });
 
 export type Config = yup.InferType<typeof configSchema>;

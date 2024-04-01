@@ -28,7 +28,7 @@ export function initializeJobs(telegramBot: Bot<ChefContext>) {
 
       telegramBot.api.sendMessage(
         linkedChatId,
-        `Hat _${nextChef.name}_ gekocht\\?`,
+        `Hat *${nextChef.name}* gekocht\\?`,
         {
           parse_mode: 'MarkdownV2',
           reply_markup: inlineKeyboard,
@@ -54,7 +54,9 @@ export function initializeJobs(telegramBot: Bot<ChefContext>) {
 
       telegramBot.api.sendMessage(
         linkedChatId,
-        `Erinnerung 🔔: Am Montag ist _${nextChef.name}_ mit Kochen dran\\. Der Koch kann mit _/set\\_next\\_chef \\<Name des Kochs\\>_ geändert werden\\.`,
+        `Erinnerung 🔔: Am Montag ist *${nextChef.name}* mit Kochen dran\\. ` +
+          'Der Koch kann mit /set\\_next\\_chef \\<Name des Kochs\\> geändert werden\\. ' +
+          'Verwende /generate\\_recipe, um ein Rezept zu generieren\\.',
         { parse_mode: 'MarkdownV2' },
       );
     },

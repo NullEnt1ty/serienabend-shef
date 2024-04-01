@@ -30,6 +30,8 @@ import {
 } from './chef';
 import { getSetting, setSetting } from './setting';
 import { Settings } from './schemas';
+import { generateRecipe } from './recipe';
+import { getConfig } from './config';
 
 export type ChefContext = Context &
   ConversationFlavor &
@@ -72,6 +74,7 @@ export async function createTelegramBot(botToken: string) {
   bot.use(createConversation(whoCookedConversation));
   bot.use(createConversation(addChefConversation));
   bot.use(createConversation(setNextChefConversation));
+  bot.use(createConversation(generateRecipeConversation));
 
   bot.command('link_chat', async (ctx) => {
     const botIsAlreadyLinked =
@@ -144,6 +147,18 @@ export async function createTelegramBot(botToken: string) {
 
   bot.command('set_next_chef', async (ctx) => {
     await ctx.conversation.enter('setNextChefConversation');
+  });
+
+  bot.command('generate_recipe', async (ctx) => {
+    const config = getConfig();
+    if (!config.openAi.enabled) {
+      await ctx.reply(
+        'Leider kann ich gerade kein Rezept generieren, da der dazu nötige Dienst deaktiviert ist.',
+      );
+      return;
+    }
+
+    await ctx.conversation.enter('generateRecipeConversation');
   });
 
   bot.command('debug', async (ctx) => {
@@ -302,6 +317,59 @@ async function setNextChefConversation(
     fmt`Der nächste Koch wurde zu ${bold(newNextChef.name)} geändert.`,
     { reply_markup: { remove_keyboard: true } },
   );
+}
+
+async function generateRecipeConversation(
+  conversation: ChefConversation,
+  ctx: ChefContext,
+) {
+  await ctx.reply('Für wie viele Personen soll das Rezept sein?');
+  const { message: numberOfServingsMessage } =
+    await conversation.waitFor('message:text');
+  const numberOfServings = Number.parseInt(numberOfServingsMessage.text, 10);
+
+  if (Number.isNaN(numberOfServings)) {
+    return ctx.reply('Bitte gib eine ganze Zahl an.');
+  }
+
+  if (numberOfServings <= 0) {
+    return ctx.reply('Die Anzahl der Personen muss größer als 0 sein.');
+  }
+
+  if (numberOfServings > 20) {
+    return ctx.reply('Die Anzahl der Personen darf maximal 20 betragen.');
+  }
+
+  const yesNoKeyboard = new Keyboard([['Ja'], ['Nein']]).oneTime();
+  await ctx.reply(
+    `Alles klar, ein Rezept für ${numberOfServings} Personen. Hast du noch spezielle Wünsche?`,
+    { reply_markup: yesNoKeyboard },
+  );
+
+  const { message: additionalInstructionsDesiredMessage } =
+    await conversation.waitFor('message:text');
+
+  let additionalInstructions: string | undefined;
+  if (additionalInstructionsDesiredMessage.text === 'Ja') {
+    await ctx.reply('Was möchtest du ergänzen?', {
+      reply_markup: { remove_keyboard: true },
+    });
+
+    const { message: additionalInstructionsMessage } =
+      await conversation.waitFor('message:text');
+    additionalInstructions = additionalInstructionsMessage.text;
+  }
+
+  await ctx.reply('Ich generiere nun ein Rezept…', {
+    reply_markup: { remove_keyboard: true },
+  });
+
+  // TODO: Abort after a certain time
+  const recipe = await conversation.external(() =>
+    generateRecipe(numberOfServings, additionalInstructions),
+  );
+
+  await ctx.reply(recipe ?? 'Upsi, es konnte kein Rezept generiert werden.');
 }
 
 function getArgumentsFromText(text: string) {

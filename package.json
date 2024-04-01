@@ -17,6 +17,7 @@
     "drizzle-orm": "^0.30.6",
     "grammy": "^1.21.2",
     "mysql2": "^3.9.3",
+    "openai": "^4.31.0",
     "yup": "^1.4.0"
   },
   "devDependencies": {

@@ -59,7 +59,9 @@ export async function createTelegramBot(botToken: string) {
   );
 
   bot.use(conversations());
-  bot.use(createConversation(askWhoCooked));
+  bot.use(createConversation(whoCookedConversation));
+  bot.use(createConversation(addChefConversation));
+  bot.use(createConversation(setNextChefConversation));
 
   bot.command('link_chat', async (ctx) => {
     const botIsAlreadyLinked =
@@ -112,24 +114,7 @@ export async function createTelegramBot(botToken: string) {
   });
 
   bot.command('add_chef', async (ctx) => {
-    const args = getArgumentsFromText(ctx.msg.text);
-    const name = args[1];
-
-    if (name === undefined) {
-      ctx.reply('Der Name des Koches fehlt (Parameter #1)');
-      return;
-    }
-
-    if (name === nobody) {
-      ctx.reply('Dieser Name kann nicht gewählt werden.');
-      return;
-    }
-
-    await addChef(name);
-
-    return ctx.reply(`Der Koch _${name}_ wurde hinzugefügt\\.`, {
-      parse_mode: 'MarkdownV2',
-    });
+    await ctx.conversation.enter('addChefConversation');
   });
 
   bot.command('get_next_chef', async (ctx) => {
@@ -148,22 +133,7 @@ export async function createTelegramBot(botToken: string) {
   });
 
   bot.command('set_next_chef', async (ctx) => {
-    const args = getArgumentsFromText(ctx.msg.text);
-    const name = args[1];
-
-    if (name === undefined) {
-      ctx.reply('Der Name des Koches fehlt (Parameter #1)');
-      return;
-    }
-
-    const newNextChef = await setNextChef(name);
-
-    return ctx.reply(
-      `Der nächste Koch wurde zu _${newNextChef.name}_ geändert\\.`,
-      {
-        parse_mode: 'MarkdownV2',
-      },
-    );
+    await ctx.conversation.enter('setNextChefConversation');
   });
 
   bot.command('debug', async (ctx) => {
@@ -204,7 +174,7 @@ export async function createTelegramBot(botToken: string) {
   bot.callbackQuery('chef_has_not_cooked', async (ctx) => {
     await ctx.answerCallbackQuery();
     await ctx.editMessageReplyMarkup(undefined);
-    await ctx.conversation.enter('askWhoCooked');
+    await ctx.conversation.enter('whoCookedConversation');
   });
 
   bot.hears(/guter|good bot/i, async (ctx) => {
@@ -222,7 +192,10 @@ export async function createTelegramBot(botToken: string) {
   return bot;
 }
 
-async function askWhoCooked(conversation: ChefConversation, ctx: ChefContext) {
+async function whoCookedConversation(
+  conversation: ChefConversation,
+  ctx: ChefContext,
+) {
   const allChefs = await conversation.external(() => getAllChefs());
   const chefNames = allChefs.map((chef) => chef.name);
   const chefListKeyboardButtons = chefNames.map((chefId) => [chefId]);
@@ -241,8 +214,8 @@ async function askWhoCooked(conversation: ChefConversation, ctx: ChefContext) {
   const chefName = message.text;
   const chef = await getChefByName(chefName);
 
-  if (chef === undefined) {
-    ctx.reply(`Es wurde kein Chef mit dem Namen _${chefName}_ gefunden\\.`, {
+  if (chef == null) {
+    ctx.reply(`Es wurde kein Koch mit dem Namen _${chefName}_ gefunden\\.`, {
       parse_mode: 'MarkdownV2',
       reply_markup: { remove_keyboard: true },
     });
@@ -258,6 +231,73 @@ async function askWhoCooked(conversation: ChefConversation, ctx: ChefContext) {
     parse_mode: 'MarkdownV2',
     reply_markup: { remove_keyboard: true },
   });
+}
+
+async function addChefConversation(
+  conversation: ChefConversation,
+  ctx: ChefContext,
+) {
+  await ctx.reply('Wie lautet der Name des neuen Koches?');
+
+  const { message } = await conversation.waitFor('message:text');
+
+  const chefName = message.text;
+  if (chefName === nobody) {
+    ctx.reply('Dieser Name kann nicht gewählt werden.');
+    return;
+  }
+
+  const existingChefWithSameName = await conversation.external(() =>
+    getChefByName(chefName),
+  );
+  if (existingChefWithSameName != null) {
+    ctx.reply(`Es existiert bereits ein Koch mit dem Namen _${chefName}_\\.`, {
+      parse_mode: 'MarkdownV2',
+    });
+    return;
+  }
+
+  await conversation.external(() => addChef(chefName));
+
+  return ctx.reply(`Der Koch _${chefName}_ wurde hinzugefügt\\.`, {
+    parse_mode: 'MarkdownV2',
+  });
+}
+
+async function setNextChefConversation(
+  conversation: ChefConversation,
+  ctx: ChefContext,
+) {
+  const allChefs = await conversation.external(() => getAllChefs());
+  const chefNames = allChefs.map((chef) => chef.name);
+  const chefListKeyboardButtons = chefNames.map((chefId) => [chefId]);
+  const chefListKeyboard = new Keyboard(chefListKeyboardButtons).oneTime();
+  await ctx.reply('Wer soll der nächste Koch sein?', {
+    reply_markup: chefListKeyboard,
+  });
+
+  const { message } = await conversation.waitFor('message:text');
+
+  const chefName = message.text;
+  const chef = await conversation.external(() => getChefByName(chefName));
+
+  if (chef == null) {
+    ctx.reply(`Es wurde kein Koch mit dem Namen _${chefName}_ gefunden\\.`, {
+      parse_mode: 'MarkdownV2',
+      reply_markup: { remove_keyboard: true },
+    });
+    return;
+  }
+
+  const newNextChef = await conversation.external(() => setNextChef(chef.name));
+
+  return ctx.reply(
+    `Der nächste Koch wurde zu _${newNextChef.name}_ geändert\\.`,
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: { remove_keyboard: true },
+    },
+  );
 }
 
 function getArgumentsFromText(text: string) {

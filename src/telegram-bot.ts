@@ -42,6 +42,7 @@ type ChefConversation = Conversation<ChefContext>;
 
 const nobody = "Niemand";
 const cancel = "Abbrechen";
+const cancelLowerCase = cancel.toLowerCase();
 
 export async function createTelegramBot(botToken: string) {
 	const bot = new Bot<ChefContext>(botToken);
@@ -277,26 +278,33 @@ async function addChefConversation(
 	});
 
 	const { message } = await conversation.waitFor("message:text");
-	const chefName = message.text;
+	const chefNameOrAction = message.text;
 
-	if (chefName === nobody) {
+	if (chefNameOrAction.toLowerCase() === cancelLowerCase) {
+		await sendCancelledMessage(ctx);
+		return;
+	}
+
+	if (chefNameOrAction === nobody) {
 		ctx.reply("Dieser Name kann nicht gewählt werden.");
 		return;
 	}
 
 	const existingChefWithSameName = await conversation.external(() =>
-		getChefByName(chefName),
+		getChefByName(chefNameOrAction),
 	);
 	if (existingChefWithSameName != null) {
 		ctx.replyFmt(
-			fmt`Es existiert bereits ein Koch mit dem Namen ${bold(chefName)}.`,
+			fmt`Es existiert bereits ein Koch mit dem Namen ${bold(chefNameOrAction)}.`,
 		);
 		return;
 	}
 
-	await conversation.external(() => addChef(chefName));
+	await conversation.external(() => addChef(chefNameOrAction));
 
-	return ctx.replyFmt(fmt`Der Koch ${bold(chefName)} wurde hinzugefügt.`);
+	return ctx.replyFmt(
+		fmt`Der Koch ${bold(chefNameOrAction)} wurde hinzugefügt.`,
+	);
 }
 
 async function disableChefConversation(
@@ -445,8 +453,15 @@ async function generateRecipeConversation(
 	await ctx.reply("Für wie viele Personen soll das Rezept sein?", {
 		reply_markup: { force_reply: true },
 	});
+
 	const { message: numberOfServingsMessage } =
 		await conversation.waitFor("message:text");
+
+	if (numberOfServingsMessage.text.toLowerCase() === cancelLowerCase) {
+		await sendCancelledMessage(ctx);
+		return;
+	}
+
 	const numberOfServings = Number.parseInt(numberOfServingsMessage.text, 10);
 
 	if (Number.isNaN(numberOfServings)) {
@@ -461,7 +476,7 @@ async function generateRecipeConversation(
 		return ctx.reply("Die Anzahl der Personen darf maximal 20 betragen.");
 	}
 
-	const yesNoKeyboard = new Keyboard([["Ja"], ["Nein"]]).oneTime();
+	const yesNoKeyboard = new Keyboard([["Ja"], ["Nein"], [cancel]]).oneTime();
 	await ctx.reply(
 		`Alles klar, ein Rezept für ${numberOfServings} Personen. Hast du noch spezielle Wünsche?`,
 		{ reply_markup: yesNoKeyboard },
@@ -469,6 +484,11 @@ async function generateRecipeConversation(
 
 	const { message: additionalInstructionsDesiredMessage } =
 		await conversation.waitFor("message:text");
+
+	if (additionalInstructionsDesiredMessage.text === cancel) {
+		await sendCancelledMessage(ctx);
+		return;
+	}
 
 	let additionalInstructions: string | undefined;
 	if (additionalInstructionsDesiredMessage.text === "Ja") {

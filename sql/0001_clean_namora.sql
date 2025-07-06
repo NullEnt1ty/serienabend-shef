@@ -1,0 +1,1 @@
+ALTER TABLE `Chef` ADD `isDisabled` boolean DEFAULT false NOT NULL;

@@ -1,10 +1,18 @@
-import { asc, eq, getTableColumns, inArray, max, min } from "drizzle-orm";
+import { and, asc, eq, getTableColumns, inArray, max, min } from "drizzle-orm";
 import { db } from "./database";
 import { chef, type Chef, type NewChef, history, Settings } from "./schemas";
 import { deleteSetting, getSetting, setSetting } from "./setting";
 
 export async function getAllChefs() {
 	return db.select().from(chef);
+}
+
+export async function getAllEnabledChefs() {
+	return db.select().from(chef).where(eq(chef.isDisabled, false));
+}
+
+export async function getAllDisabledChefs() {
+	return db.select().from(chef).where(eq(chef.isDisabled, true));
 }
 
 export async function getAllChefsSortedByPointsAndLastCookedDate() {
@@ -17,9 +25,7 @@ export async function getAllChefsSortedByPointsAndLastCookedDate() {
 }
 
 export async function getChefByName(name: string) {
-	return db.query.chef.findFirst({
-		where: eq(chef.name, name),
-	});
+	return db.query.chef.findFirst({ where: eq(chef.name, name) });
 }
 
 export async function addChef(name: string) {
@@ -30,10 +36,7 @@ export async function addChef(name: string) {
 	// Give the new chef the lowest score of the current chefs so they don't lag behind.
 	const lowestPoints = await getLowestPoints();
 
-	const newChef: NewChef = {
-		name: name,
-		points: lowestPoints,
-	};
+	const newChef: NewChef = { name: name, points: lowestPoints };
 
 	await db.insert(chef).values(newChef);
 	const addedChef = await getChefByName(name);
@@ -95,20 +98,29 @@ export async function awardChefForCooking(name: string) {
 			.where(eq(chef.id, _chef.id));
 
 		// TODO: Maybe use specific time?
-		await trx.insert(history).values({
-			chefId: _chef.id,
-			date: new Date(),
-			numberOfPersons: 1,
-		});
+		await trx
+			.insert(history)
+			.values({ chefId: _chef.id, date: new Date(), numberOfPersons: 1 });
 	});
 }
 
+export async function disableChef(id: number) {
+	await db.update(chef).set({ isDisabled: true }).where(eq(chef.id, id));
+}
+
+export async function enableChef(id: number) {
+	await db.update(chef).set({ isDisabled: false }).where(eq(chef.id, id));
+}
+
 async function getChefWithLowestPoints() {
-	const minPointsQuery = db.select({ value: min(chef.points) }).from(chef);
+	const minPointsQuery = db
+		.select({ value: min(chef.points) })
+		.from(chef)
+		.where(eq(chef.isDisabled, false));
 	const chefsWithLowestPoints = await db
 		.select()
 		.from(chef)
-		.where(eq(chef.points, minPointsQuery));
+		.where(and(eq(chef.points, minPointsQuery), eq(chef.isDisabled, false)));
 
 	if (chefsWithLowestPoints.length === 0) {
 		return undefined;
@@ -124,6 +136,7 @@ async function getChefWithLowestPoints() {
 			chefId: history.chefId,
 			name: chef.name,
 			points: chef.points,
+			isDisabled: chef.isDisabled,
 		})
 		.from(history)
 		.innerJoin(chef, eq(history.chefId, chef.id))
@@ -143,6 +156,7 @@ async function getChefWithLowestPoints() {
 		id: chefWhoHasntCookedForTheLongestTimeResult.chefId,
 		name: chefWhoHasntCookedForTheLongestTimeResult.name,
 		points: chefWhoHasntCookedForTheLongestTimeResult.points,
+		isDisabled: chefWhoHasntCookedForTheLongestTimeResult.isDisabled,
 	};
 
 	return _chef;

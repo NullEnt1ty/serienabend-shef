@@ -21,8 +21,11 @@ import {
 import {
 	addChef,
 	awardChefForCooking,
-	getAllChefs,
+	disableChef,
+	enableChef,
 	getAllChefsSortedByPointsAndLastCookedDate,
+	getAllDisabledChefs,
+	getAllEnabledChefs,
 	getChefByName,
 	getNextChef,
 	resetEnforcedNextChef,
@@ -75,6 +78,8 @@ export async function createTelegramBot(botToken: string) {
 	bot.use(createConversation(addChefConversation));
 	bot.use(createConversation(setNextChefConversation));
 	bot.use(createConversation(generateRecipeConversation));
+	bot.use(createConversation(disableChefConversation));
+	bot.use(createConversation(enableChefConversation));
 
 	bot.command("link_chat", async (ctx) => {
 		const botIsAlreadyLinked =
@@ -120,7 +125,8 @@ export async function createTelegramBot(botToken: string) {
 				const pointsWord = chef.points === 1 ? "Punkt" : "Punkte";
 				const isNextChef = nextChef !== undefined && chef.id === nextChef.id;
 				const nextChefIndicator = isNextChef ? " (nächster Koch)" : "";
-				return `${chef.name}: ${chef.points} ${pointsWord}${nextChefIndicator}`;
+				const isDisabled = chef.isDisabled ? " (deaktiviert)" : "";
+				return `${chef.name}: ${chef.points} ${pointsWord}${isDisabled}${nextChefIndicator}`;
 			})
 			.join("\n");
 		ctx.reply(`Köche:\n\n${chefLines}`);
@@ -128,6 +134,14 @@ export async function createTelegramBot(botToken: string) {
 
 	bot.command("add_chef", async (ctx) => {
 		await ctx.conversation.enter("addChefConversation");
+	});
+
+	bot.command("disable_chef", async (ctx) => {
+		await ctx.conversation.enter("disableChefConversation");
+	});
+
+	bot.command("enable_chef", async (ctx) => {
+		await ctx.conversation.enter("enableChefConversation");
 	});
 
 	bot.command("get_next_chef", async (ctx) => {
@@ -220,29 +234,26 @@ async function whoCookedConversation(
 	conversation: ChefConversation,
 	ctx: ChefContext,
 ) {
-	const allChefs = await conversation.external(() => getAllChefs());
-	const chefNames = allChefs.map((chef) => chef.name);
+	const enabledChefs = await conversation.external(() => getAllEnabledChefs());
+	const chefNames = enabledChefs.map((chef) => chef.name);
 	const chefListKeyboardButtons = chefNames.map((chefId) => [chefId]);
 	chefListKeyboardButtons.unshift([nobody]);
 	const chefListKeyboard = new Keyboard(chefListKeyboardButtons).oneTime();
 	await ctx.reply("Wer hat gekocht?", { reply_markup: chefListKeyboard });
 
 	const { message } = await conversation.waitFor("message:text");
+	const chefName = message.text;
 
-	if (message.text === nobody) {
+	if (chefName === nobody) {
 		return ctx.reply("Gut, dann kriegt halt niemand einen Punkt! 🤷‍♀️", {
 			reply_markup: { remove_keyboard: true },
 		});
 	}
 
-	const chefName = message.text;
-	const chef = await getChefByName(chefName);
+	const chef = enabledChefs.find((chef) => chef.name === chefName);
 
 	if (chef == null) {
-		ctx.replyFmt(
-			fmt`Es wurde kein Koch mit dem Namen ${bold(chefName)} gefunden.`,
-			{ reply_markup: { remove_keyboard: true } },
-		);
+		await sendChefNotFoundMessage(ctx, chefName);
 		return;
 	}
 
@@ -264,8 +275,8 @@ async function addChefConversation(
 	await ctx.reply("Wie lautet der Name des neuen Koches?");
 
 	const { message } = await conversation.waitFor("message:text");
-
 	const chefName = message.text;
+
 	if (chefName === nobody) {
 		ctx.reply("Dieser Name kann nicht gewählt werden.");
 		return;
@@ -286,38 +297,134 @@ async function addChefConversation(
 	return ctx.replyFmt(fmt`Der Koch ${bold(chefName)} wurde hinzugefügt.`);
 }
 
-async function setNextChefConversation(
+async function disableChefConversation(
 	conversation: ChefConversation,
 	ctx: ChefContext,
 ) {
-	const allChefs = await conversation.external(() => getAllChefs());
-	const chefNames = allChefs.map((chef) => chef.name);
+	const enabledChefs = await conversation.external(() => getAllEnabledChefs());
+	if (enabledChefs.length === 0) {
+		await ctx.reply("Es gibt keine aktiven Köche.");
+		return;
+	}
+
+	const chefNames = enabledChefs.map((chef) => chef.name);
 	const chefListKeyboardButtons = chefNames.map((chefId) => [chefId]);
 	const chefListKeyboard = new Keyboard([
 		...chefListKeyboardButtons,
 		[cancel],
 	]).oneTime();
+
+	await ctx.reply(
+		"Du kannst einen Koch deaktivieren, damit er nicht mehr als nächster Koch ausgewählt wird.\n\n" +
+			"Welchen Koch möchtest du deaktivieren?",
+		{ reply_markup: chefListKeyboard },
+	);
+
+	const { message } = await conversation.waitFor("message:text");
+	const chefNameOrAction = message.text;
+
+	if (chefNameOrAction === cancel) {
+		await sendCancelledMessage(ctx);
+		return;
+	}
+
+	const chef = enabledChefs.find((chef) => chef.name === chefNameOrAction);
+
+	if (chef == null) {
+		await sendChefNotFoundMessage(ctx, chefNameOrAction);
+		return;
+	}
+
+	await conversation.external(() => {
+		disableChef(chef.id);
+	});
+
+	return ctx.replyFmt(fmt`${bold(chef.name)} wurde deaktiviert.`, {
+		reply_markup: { remove_keyboard: true },
+	});
+}
+
+async function enableChefConversation(
+	conversation: ChefConversation,
+	ctx: ChefContext,
+) {
+	const disabledChefs = await conversation.external(() =>
+		getAllDisabledChefs(),
+	);
+	if (disabledChefs.length === 0) {
+		await ctx.reply("Es gibt keine deaktivierten Köche.");
+		return;
+	}
+
+	const chefNames = disabledChefs.map((chef) => chef.name);
+	const keyboardButtons = chefNames.map((name) => [name]);
+	const chefListKeyboard = new Keyboard([
+		...keyboardButtons,
+		[cancel],
+	]).oneTime();
+
+	await ctx.reply("Welchen Koch möchtest du aktivieren?", {
+		reply_markup: chefListKeyboard,
+	});
+
+	const { message } = await conversation.waitFor("message:text");
+	const chefNameOrAction = message.text;
+
+	if (chefNameOrAction === cancel) {
+		await sendCancelledMessage(ctx);
+		return;
+	}
+
+	const chef = disabledChefs.find((chef) => chef.name === chefNameOrAction);
+
+	if (chef == null) {
+		await sendChefNotFoundMessage(ctx, chefNameOrAction);
+		return;
+	}
+
+	await conversation.external(() => enableChef(chef.id));
+
+	return ctx.replyFmt(fmt`${bold(chef.name)} wurde aktiviert.`, {
+		reply_markup: { remove_keyboard: true },
+	});
+}
+
+async function setNextChefConversation(
+	conversation: ChefConversation,
+	ctx: ChefContext,
+) {
+	const enabledChefs = await conversation.external(() => getAllEnabledChefs());
+
+	if (enabledChefs.length === 0) {
+		await ctx.reply(
+			"Es gibt keine aktiven Köche. Füge einen Koch mit /add_chef hinzu oder aktiviere einen Koch mit /enable_chef.",
+		);
+		return;
+	}
+
+	const chefNames = enabledChefs.map((chef) => chef.name);
+	const chefListKeyboardButtons = chefNames.map((chefId) => [chefId]);
+	const chefListKeyboard = new Keyboard([
+		...chefListKeyboardButtons,
+		[cancel],
+	]).oneTime();
+
 	await ctx.reply("Wer soll der nächste Koch sein?", {
 		reply_markup: chefListKeyboard,
 	});
 
 	const { message } = await conversation.waitFor("message:text");
-
 	const chefNameOrAction = message.text;
 
 	if (chefNameOrAction === cancel) {
+		await sendCancelledMessage(ctx);
 		return;
 	}
 
-	const chef = await conversation.external(() =>
-		getChefByName(chefNameOrAction),
-	);
+	const chef = enabledChefs.find((chef) => chef.name === chefNameOrAction);
 
 	if (chef == null) {
-		ctx.replyFmt(
-			fmt`Es wurde kein Koch mit dem Namen ${bold(chefNameOrAction)} gefunden.`,
-			{ reply_markup: { remove_keyboard: true } },
-		);
+		await sendChefNotFoundMessage(ctx, chefNameOrAction);
 		return;
 	}
 
@@ -380,6 +487,17 @@ async function generateRecipeConversation(
 	);
 
 	await ctx.reply(recipe ?? "Upsi, es konnte kein Rezept generiert werden.");
+}
+
+function sendCancelledMessage(ctx: ChefContext) {
+	return ctx.reply("Abgebrochen.", { reply_markup: { remove_keyboard: true } });
+}
+
+function sendChefNotFoundMessage(ctx: ChefContext, chefName: string) {
+	return ctx.replyFmt(
+		fmt`Es wurde kein Koch mit dem Namen ${bold(chefName)} gefunden.`,
+		{ reply_markup: { remove_keyboard: true } },
+	);
 }
 
 function getArgumentsFromText(text: string) {

@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { int, mysqlTable, unique, varchar } from "drizzle-orm/mysql-core";
+import {
+	int,
+	mysqlTable,
+	unique,
+	varchar,
+	boolean,
+} from "drizzle-orm/mysql-core";
 import { history } from "./history";
 
 export const chef = mysqlTable(
@@ -8,11 +14,10 @@ export const chef = mysqlTable(
 		id: int("id").autoincrement().notNull(),
 		name: varchar("name", { length: 255 }).notNull(),
 		points: int("points").default(0).notNull(),
+		isDisabled: boolean("isDisabled").default(false).notNull(),
 	},
 	(table) => {
-		return {
-			name: unique("name").on(table.name),
-		};
+		return { name: unique("name").on(table.name) };
 	},
 );
 

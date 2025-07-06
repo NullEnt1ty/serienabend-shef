@@ -5,8 +5,11 @@ function generateRecipeSystemMessage(numberOfServings: number) {
 		`You are a recipe assistant. Generate a vegetarian recipe for ${numberOfServings} servings. ` +
 		"You MUST NOT include any of the following ingredients: meat, fish, nuts (excluding almonds), zucchini. " +
 		"You may use veggie meat substitutes. " +
-		'Use metric units for the ingredients. Cooking weights and measures such as "tablespoon" are allowed. ' +
-		"Please answer in German. Don't include any messages besides the recipe."
+		"Use metric units for the ingredients. Cooking weights and measures that are " +
+		'common in Germany such as "tablespoon" are allowed. ' +
+		"Please answer in German. Don't include any messages besides the recipe. " +
+		"If the user has questions or requests, you can answer them in the recipe. " +
+		"Include a list of ingredients, the preparation steps, and any additional instructions."
 	);
 }
 
@@ -19,7 +22,7 @@ export async function generateRecipe(
 		additionalInstructions != null && additionalInstructions.trim().length > 0;
 
 	const chatCompletion = await openAiClient.chat.completions.create({
-		model: "gpt-3.5-turbo",
+		model: "o4-mini",
 		messages: [
 			{
 				role: "system",

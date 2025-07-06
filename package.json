@@ -6,7 +6,7 @@
 		"dev": "bun --watch src/app.ts",
 		"start": "bun src/app.ts",
 		"typecheck": "tsc",
-		"migration:generate": "drizzle-kit generate:mysql"
+		"migration:generate": "drizzle-kit generate"
 	},
 	"author": "Dominique Mattern <dominique@mattern.dev>",
 	"license": "MIT",

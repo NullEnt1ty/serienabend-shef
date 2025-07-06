@@ -38,6 +38,7 @@ export type ChefContext = ConversationFlavor<Context> &
 type ChefConversation = Conversation<ChefContext>;
 
 const nobody = "Niemand";
+const cancel = "Abbrechen";
 
 export async function createTelegramBot(botToken: string) {
 	const bot = new Bot<ChefContext>(botToken);
@@ -292,19 +293,29 @@ async function setNextChefConversation(
 	const allChefs = await conversation.external(() => getAllChefs());
 	const chefNames = allChefs.map((chef) => chef.name);
 	const chefListKeyboardButtons = chefNames.map((chefId) => [chefId]);
-	const chefListKeyboard = new Keyboard(chefListKeyboardButtons).oneTime();
+	const chefListKeyboard = new Keyboard([
+		...chefListKeyboardButtons,
+		[cancel],
+	]).oneTime();
 	await ctx.reply("Wer soll der nächste Koch sein?", {
 		reply_markup: chefListKeyboard,
 	});
 
 	const { message } = await conversation.waitFor("message:text");
 
-	const chefName = message.text;
-	const chef = await conversation.external(() => getChefByName(chefName));
+	const chefNameOrAction = message.text;
+
+	if (chefNameOrAction === cancel) {
+		return;
+	}
+
+	const chef = await conversation.external(() =>
+		getChefByName(chefNameOrAction),
+	);
 
 	if (chef == null) {
 		ctx.replyFmt(
-			fmt`Es wurde kein Koch mit dem Namen ${bold(chefName)} gefunden.`,
+			fmt`Es wurde kein Koch mit dem Namen ${bold(chefNameOrAction)} gefunden.`,
 			{ reply_markup: { remove_keyboard: true } },
 		);
 		return;

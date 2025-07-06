@@ -272,7 +272,9 @@ async function addChefConversation(
 	conversation: ChefConversation,
 	ctx: ChefContext,
 ) {
-	await ctx.reply("Wie lautet der Name des neuen Koches?");
+	await ctx.reply("Wie lautet der Name des neuen Koches?", {
+		reply_markup: { force_reply: true },
+	});
 
 	const { message } = await conversation.waitFor("message:text");
 	const chefName = message.text;
@@ -440,7 +442,9 @@ async function generateRecipeConversation(
 	conversation: ChefConversation,
 	ctx: ChefContext,
 ) {
-	await ctx.reply("Für wie viele Personen soll das Rezept sein?");
+	await ctx.reply("Für wie viele Personen soll das Rezept sein?", {
+		reply_markup: { force_reply: true },
+	});
 	const { message: numberOfServingsMessage } =
 		await conversation.waitFor("message:text");
 	const numberOfServings = Number.parseInt(numberOfServingsMessage.text, 10);

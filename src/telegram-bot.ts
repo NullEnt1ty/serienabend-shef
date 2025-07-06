@@ -33,8 +33,7 @@ import { Settings } from './schemas';
 import { generateRecipe } from './recipe';
 import { getConfig } from './config';
 
-export type ChefContext = Context &
-  ConversationFlavor &
+export type ChefContext = ConversationFlavor<Context> &
   ParseModeFlavor<Context>;
 type ChefConversation = Conversation<ChefContext>;
 
